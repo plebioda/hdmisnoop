@@ -25,10 +25,10 @@
 
 typedef struct 
 {
-	uint8_t data 	: 8;
-	uint8_t eom  	: 1;
-	uint8_t ack  	: 1;
-	uint8_t status 	: 8;
+	uint8_t data	: 8;
+	uint8_t eom	: 1;
+	uint8_t ack	: 1;
+	uint8_t status	: 8;
 } cec_block_t;
 
 
