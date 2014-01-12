@@ -135,6 +135,6 @@ typedef enum
 
 void cec_time_tick(void);
 
-cec_result_t cec_receive_message(struct cec_rx_message * message, struct cec_rx_filter * rx_filter);
+cec_result_t cec_rx_message(struct cec_rx_message * message, struct cec_rx_filter * rx_filter);
 
 #endif //_CEC_H

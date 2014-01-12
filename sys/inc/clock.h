@@ -13,4 +13,14 @@ struct system_clock_frequency
 
 int system_clock_get_frequency(struct system_clock_frequency * freq);
 
+/*
+ * Delay in us
+ */
+#define DELAY_MIN_TIME_US	100
+
+void delay_init(void);
+void delay_us(uint32_t n);
+void delay_tick(void);
+
+
 #endif //_CLOCK_H

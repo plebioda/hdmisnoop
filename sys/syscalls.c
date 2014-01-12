@@ -35,27 +35,33 @@ void _init(void)
 	printf("\n");
 }
 
-int _close(int file) {
+int _close(int file)
+{
 	return 0;
 }
 
-int _fstat(int file, struct stat *st) {
+int _fstat(int file, struct stat *st)
+{
 	return 0;
 }
 
-int _isatty(int file) {
+int _isatty(int file)
+{
 	return 1;
 }
 
-int _lseek(int file, int ptr, int dir) {
+int _lseek(int file, int ptr, int dir)
+{
 	return 0;
 }
 
-int _open(const char *name, int flags, int mode) {
+int _open(const char *name, int flags, int mode)
+{
 	return -1;
 }
 
-int _read(int file, char *ptr, int len) {
+int _read(int file, char *ptr, int len)
+{
 	return 0;
 }
 
@@ -112,7 +118,8 @@ void usart_send_data(char d)
 	while(! (USART2->SR & USART_FLAG_TC) );
 }
 
-int _write(int file, char *ptr, int len) {
+int _write(int file, char *ptr, int len)
+{
 	int i;
 
 	for(i = 0;i < len;i++)

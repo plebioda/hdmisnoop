@@ -1,12 +1,41 @@
 #include <clock.h>
 #include <stm32f4xx.h>
 #include <stdlib.h>
+#include <core_cm4.h>
+#include <assert.h>
 
 #define SYSCLK_SRC_HSI	0x00
 #define SYSCLK_SRC_HSE	0x04
 #define SYSCLK_SRC_PLL	0x08
 
+static __IO uint32_t delay_time;
+
 static __I uint8_t APBAHBPrescTable[16] = {0, 0, 0, 0, 1, 2, 3, 4, 1, 2, 3, 4, 6, 7, 8, 9};
+
+void delay_init(void)
+{
+	struct system_clock_frequency freq;
+	system_clock_get_frequency(&freq);
+
+	int ret = SysTick_Config(freq.SYSCLK*DELAY_MIN_TIME_US/1000000);
+	assert(!ret);
+	for(;;);
+}
+
+void delay_tick(void)
+{
+	if(delay_time)
+	{
+		delay_time--;
+	}
+}
+
+void delay_us(uint32_t n)
+{
+	delay_time = n/DELAY_MIN_TIME_US;
+	while(delay_time);
+	delay_time = 0;
+}
 
 uint32_t system_clock_get_pll_SYSCLK(void)
 {

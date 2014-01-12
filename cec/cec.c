@@ -6,7 +6,7 @@
 
 #include <cec.h>
 #include <stdio.h>
-
+#include <clock.h>
 /**
  * @addtogroup CEC
  * @{
@@ -39,9 +39,6 @@ typedef enum
 	CEC_ACK_OP_RX_ACK
 } cec_ack_op_t;
 
-
-static __IO int cec_time;
-
 static inline void cec_set_pin(void)
 {
 	CEC_GPIO->BSRRL |= (1<<CEC_PIN);
@@ -57,20 +54,9 @@ static inline uint8_t cec_get_pin(void)
 	return (CEC_GPIO->IDR & (1<<CEC_PIN)) != 0;
 }
 
-void cec_time_tick(void)
-{
-	if(cec_time)
-	{
-		cec_time--;
-	}
-}
-
 static void cec_wait(uint32_t v)
 {
-	cec_time = v;
-	while(cec_time);
-	cec_time = 0;
-
+	delay_us(CEC_TIME_UNIT*v);
 }
 
 static uint8_t cec_rx_start_bit(void)
