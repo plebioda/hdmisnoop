@@ -151,7 +151,7 @@ static uint8_t cec_rx_data_bit(void)
 {
 	int counter = 0;
 	int rising_edge = 0;
-	uint8_t data = 0xff;
+	uint8_t data = 0;
 	/* 
 	 * Set High impedance 
 	 */
