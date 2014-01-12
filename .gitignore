@@ -16,3 +16,7 @@
 *.exe
 *.out
 *.app
+
+# Output directory
+out
+
