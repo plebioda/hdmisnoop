@@ -108,8 +108,8 @@ int system_clock_get_frequency(struct system_clock_frequency * freq)
 		break;
 	}
 
-	freq->HCLK = freq->SYSCLK / system_clock_get_HCLK_prescaler();
-	freq->PCLK1 = freq->SYSCLK / system_clock_get_PCLK1_prescaler();
-	freq->PCLK2 = freq->SYSCLK / system_clock_get_PCLK2_prescaler();
+	freq->HCLK = freq->SYSCLK >> system_clock_get_HCLK_prescaler();
+	freq->PCLK1 = freq->HCLK >> system_clock_get_PCLK1_prescaler();
+	freq->PCLK2 = freq->HCLK >> system_clock_get_PCLK2_prescaler();
 }
 
