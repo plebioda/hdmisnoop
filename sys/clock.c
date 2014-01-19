@@ -9,17 +9,35 @@
 #define SYSCLK_SRC_PLL	0x08
 
 static __IO uint32_t delay_time;
+static __IO time_t up_time;
 
 static __I uint8_t APBAHBPrescTable[16] = {0, 0, 0, 0, 1, 2, 3, 4, 1, 2, 3, 4, 6, 7, 8, 9};
 
 void delay_init(void)
 {
 	struct system_clock_frequency freq;
+	
 	system_clock_get_frequency(&freq);
-
-	int ret = SysTick_Config(freq.SYSCLK*DELAY_MIN_TIME_US/1000000);
+	
+	/*
+	 * Configure System Tick interrupt
+	 */ 
+	int ret = SysTick_Config(freq.SYSCLK/(1000000/SYSTEM_CLOCK_TICK));
 	assert(!ret);
-	for(;;);
+	if(ret)
+	{
+		for(;;);
+	}
+	
+	/*
+	 * Set priority
+	 */
+	NVIC_SetPriority(SysTick_IRQn, 0);
+
+	/*
+	 * Set Priority group settings
+	 */
+	SCB->AIRCR = AIRCR_VECTKEY_MASK | NVIC_PRIORITY_GROUP_4;
 }
 
 void delay_tick(void)
@@ -32,7 +50,7 @@ void delay_tick(void)
 
 void delay_us(uint32_t n)
 {
-	delay_time = n/DELAY_MIN_TIME_US;
+	delay_time = n/SYSTEM_CLOCK_TICK;
 	while(delay_time);
 	delay_time = 0;
 }
@@ -112,4 +130,24 @@ int system_clock_get_frequency(struct system_clock_frequency * freq)
 	freq->PCLK1 = freq->HCLK >> system_clock_get_PCLK1_prescaler();
 	freq->PCLK2 = freq->HCLK >> system_clock_get_PCLK2_prescaler();
 }
+
+void up_time_tick(time_t ticks)
+{
+	up_time += ticks;
+}
+
+up_time_t get_up_time(void)
+{
+	up_time_t uptime;
+
+	uptime.total_us = up_time;
+	uptime.total_ms = uptime.total_us/1000;
+	uptime.ms = uptime.total_ms%1000;
+	uptime.seconds = (uptime.total_ms/1000)%60;
+	uptime.minutes = (uptime.total_ms/1000/60)%60;
+	uptime.hours = (uptime.total_ms/1000/60/60);
+
+	return uptime;
+}
+
 

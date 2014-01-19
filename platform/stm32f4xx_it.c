@@ -51,5 +51,6 @@ void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
 	delay_tick();
+	up_time_tick(SYSTEM_CLOCK_TICK);
 }
 

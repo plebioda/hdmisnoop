@@ -15,9 +15,64 @@
 #define CEC_PIN		0
 
 /*
+ * CEC line GPIO Clock Enable Register
+ */
+#define CEC_PIN_ENR		AHB1ENR
+
+/*
+ * CEC line GPIO Clocke Enable Register field
+ */
+#define CEC_PIN_ENR_GPIO	RCC_AHB1ENR_GPIODEN
+
+/*
+ * CEC External Interrupt
+ */
+#define CEC_EXTI	EXTI0_IRQn
+
+/*
+ * CEC External Interrupt Configuration Register number
+ */
+#define CEC_EXTICR	0
+
+/*
+ * CEC External Interrupt Line
+ */
+#define CEC_EXTI_LINE	0
+
+/*
+ * CEC External Interrupt source input 
+ * 0x3 = PD[x] pin
+ */
+#define CEC_EXTI_PIN	0x3
+
+/*
+ * CEC External Interrupt Mask Register
+ */
+#define CEC_EXTI_IMR	EXTI_IMR_MR0
+
+/*
+ * CEC External Interrupt Rising trigger selection register
+ */
+#define CEC_EXTI_RTSR	EXTI_RTSR_TR0
+
+/*
+ * CEC External Interrupt Falling trigger selection registre
+ */
+#define CEC_EXTI_FTSR	EXTI_FTSR_TR0
+
+/*
+ * CEC External Interrupt Pending Register
+ */
+#define CEC_EXTI_PR	EXTI_PR_PR0
+
+/*
+ * CEC External Interrupt Priority
+ */
+#define CEC_EXTI_PRIORITY	2
+
+/*
  * Timings in us
  */ 
-
 #define CEC_TIME_UNIT	100
 
 /*
@@ -87,6 +142,9 @@ struct cec_rx_message
 	} message;
 };
 
+#define CEC_RX_FILTER_ALL_DEVICES	0xffff
+#define CEC_RX_FILTER_NO_DEVICES	0x0000
+
 union logical_address
 {
 	uint16_t all;
@@ -134,7 +192,7 @@ typedef enum
 } cec_result_t;
 
 void cec_time_tick(void);
-
+void cec_init(void);
 cec_result_t cec_rx_message(struct cec_rx_message * message, struct cec_rx_filter * rx_filter);
 
 #endif //_CEC_H

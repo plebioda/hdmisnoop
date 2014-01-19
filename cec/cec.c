@@ -194,7 +194,6 @@ static uint8_t cec_rx_data_bit(void)
 	{
 		if(rising_edge < CEC_DURATION(DATA1_BIT_MIN_L) || rising_edge > CEC_DURATION(DATA1_BIT_MAX_L))
 		{
-			printf("low duration for 1\n");
 			data |= CEC_RX_DATA_BIT_ERROR|CEC_RX_DATA_BIT_ERROR_L1;
 		}
 	}
@@ -202,7 +201,6 @@ static uint8_t cec_rx_data_bit(void)
 	{
 		if(rising_edge < CEC_DURATION(DATA0_BIT_MIN_L) || rising_edge > CEC_DURATION(DATA0_BIT_MAX_L))
 		{
-			printf("low duration for 0\n");
 			data |= CEC_RX_DATA_BIT_ERROR|CEC_RX_DATA_BIT_ERROR_L0;
 		}
 	}
@@ -264,7 +262,6 @@ static cec_block_t cec_rx_block(cec_ack_op_t ack)
 
 		if(data&CEC_RX_DATA_BIT_ERROR)
 		{
-			printf("i=%d\n", i);
 			block.status = CEC_BLOCK_STATUS_ERROR_DATA;
 		}
 
@@ -330,6 +327,102 @@ static inline int cec_rx_filter_monitor(struct cec_rx_filter * rxf, struct cec_m
 	       (rxf->monitor.follower.all&(1<<header.follower)) != 0;	
 }
 
+static void cec_init_gpio(void)
+{
+	/*
+	 * Mode Output
+	 */
+	CEC_GPIO->MODER &=~(0x3<<(CEC_PIN<<1));
+	CEC_GPIO->MODER |= (0x1<<(CEC_PIN<<1));
+	
+	/*
+	 * Open Draing output
+	 */
+	CEC_GPIO->OTYPER |= (1<<CEC_PIN);
+
+	/*
+	 * High Speed
+	 */ 
+	CEC_GPIO->OSPEEDR &=~(0x3<<(CEC_PIN<<1));
+	CEC_GPIO->OSPEEDR |= (0x3<<(CEC_PIN<<1));
+
+	/*
+	 * Push-up Push-down 
+	 */
+	CEC_GPIO->PUPDR &=~(0x3<<(CEC_PIN<<1));
+}
+
+static void cec_init_nvic(void)
+{
+	/*
+	 * Set IRQ priority
+	 */
+	NVIC_SetPriority(CEC_EXTI, CEC_EXTI_PRIORITY);
+
+	/*
+	 * Enable IRQ
+	 */
+	NVIC_EnableIRQ(CEC_EXTI);
+}
+
+static void cec_init_exti(void)
+{
+	/*
+	 * Connect EXTI line to CEC GPIO Pin
+	 */
+	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+	SYSCFG->EXTICR[CEC_EXTICR] &=~(0xf<<CEC_EXTI_LINE);
+	SYSCFG->EXTICR[CEC_EXTICR] |= (CEC_EXTI_PIN<<CEC_EXTI_LINE);
+
+	/*
+	 * Mask interrupt
+	 */
+	EXTI->IMR |= CEC_EXTI_IMR;
+
+	/*
+	 * Rising edge
+	 */
+	EXTI->RTSR |= CEC_EXTI_RTSR;
+
+	/*
+	 * Falling edge
+	 */
+	EXTI->FTSR |= CEC_EXTI_FTSR;
+
+	/*
+	 * Clear pending interrupt
+	 */
+	EXTI->PR |= CEC_EXTI_PR;
+}
+
+void cec_init(void)
+{
+	/*
+	 * Enable Peripheral clock for GPIO
+	 */
+	RCC->CEC_PIN_ENR |= CEC_PIN_ENR_GPIO;
+	
+	/*
+	 * Go to High Impedance
+	 */
+	cec_set_pin();
+
+	/*
+	 * Configure GPIO
+	 */
+	cec_init_gpio();
+
+	/*
+	 * Configure NVIC
+	 */
+	cec_init_nvic();
+
+	/*
+	 * Configure EXTI
+	 */
+	cec_init_exti();
+}
+
 cec_result_t cec_rx_message(struct cec_rx_message * msg, struct cec_rx_filter * rxf)
 {
 	cec_block_t block;
@@ -362,9 +455,15 @@ cec_result_t cec_rx_message(struct cec_rx_message * msg, struct cec_rx_filter * 
 	}
 	else
 	{
-		msg->ack = cec_rx_ack(block.eom);
-		monitor = 1;
-		ret = CEC_ERROR_RX_DROPPED;
+		if(cec_rx_filter_monitor(rxf, msg->header))
+		{
+			msg->ack = cec_rx_ack(block.eom);
+			monitor = 1;
+		}
+		else
+		{
+			ret = CEC_ERROR_RX_DROPPED;
+		}
 	}
 
 	int len = 0;
@@ -381,7 +480,6 @@ cec_result_t cec_rx_message(struct cec_rx_message * msg, struct cec_rx_filter * 
 			}
 			else
 			{
-				printf("block.status = %d len=%d eom=%d\n", block.status, len, block.eom);
 				ret = CEC_ERROR_RX_DATA_BLOCK;
 				break;
 			}
@@ -398,7 +496,6 @@ cec_result_t cec_rx_message(struct cec_rx_message * msg, struct cec_rx_filter * 
 			else
 			{
 				ret = CEC_ERROR_RX_DATA_BLOCK;
-				printf("monitor block.status = %d len=%d eom=%d\n", block.status, len, block.eom);
 				break;
 			}
 		}
