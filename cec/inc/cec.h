@@ -192,10 +192,80 @@
 #define CEC_OPCODE_CDC					0xF8
 #define CEC_OPCODE_ABORT				0xFF
 
+
+#define CEC_DEVICE_TYPE_TV			0
+#define CEC_DEVICE_TYPE_RECORDING_DEVICE	1
+#define CEC_DEVICE_TYPE_RESERVED		2
+#define CEC_DEVICE_TYPE_STB			3
+#define CEC_DEVICE_TYPE_PLAYBACK		4
+#define CEC_DEVICE_TYPE_AUDIO			5
+#define CEC_DEVICE_TYPE_SWITCH			6
+#define CEC_DEVICE_TYPE_VIDEO_PROCESSOR		7
+
+#define CEC_ABORT_REASON_UNRECOGNIZED_OPCODE			0
+#define CEC_ABORT_REASON_NOT_IN_CORRECT_MODE_TO_RESPOND		1
+#define CEC_ABORT_REASON_CANNOT_PROVIDE_SOURCE			2
+#define CEC_ABORT_REASON_INVALID_OPERAND			3
+#define CEC_ABORT_REASON_REFUSED				4
+
+#define CEC_MENU_REQUEST_TYPE_ACTIVATE		0
+#define CEC_MENU_REQUEST_TYPE_DEACTIVATE	1
+#define CEC_MENU_REQUEST_TYPE_QUERY		2
+
+#define CEC_MENU_STATE_ACTIVATED		0
+#define CEC_MENU_STATE_DEACTIVATED		1
+
+#define CEC_POWER_STATUS_ON				0
+#define CEC_POWER_STATUS_STANDBY			1
+#define CEC_POWER_STATUS_IN_TRANSITION_STANDBY_TO_ON	2
+#define CEC_POWER_STATUS_IN_TRANSITION_ON_TO_STANDBY	3
+
+typedef uint8_t cec_opcode_t;
+typedef uint8_t cec_device_type_t;
+typedef uint8_t cec_abort_reason_t;
+typedef uint8_t cec_menu_request_type_t;
+typedef uint8_t cec_menu_state_t;
+typedef uint8_t cec_power_status_t;
+
 struct cec_message_header
 {
 	uint8_t initiator : 4;
 	uint8_t follower  : 4;
+};
+
+struct cec_physical_address
+{
+	uint8_t A : 4;
+	uint8_t B : 4;
+	uint8_t C : 4;
+	uint8_t D : 4;
+};
+
+struct cec_message_active_source
+{
+	struct cec_physical_address physical_address;
+};
+
+struct cec_message_routing_information
+{
+	struct cec_physical_address physical_address;
+};
+
+struct cec_message_set_stream_path
+{
+	struct cec_physical_address physical_address;
+};
+
+struct cec_message_routing_change
+{
+	struct cec_physical_address original_address;
+	struct cec_physical_address new_address;
+};
+
+struct cec_message_report_physical_address
+{
+	struct cec_physical_address physical_address;
+	cec_device_type_t device_type;
 };
 
 struct cec_rx_message
@@ -208,7 +278,18 @@ struct cec_rx_message
 		struct
 		{
 			uint8_t opcode;
-			uint8_t operand[CEC_MESSAGE_MAX_OPERAND_LENGTH];
+			union
+			{
+				struct cec_message_active_source active_source;
+				struct cec_message_routing_change routing_change;
+				struct cec_message_routing_information routing_information;
+				struct cec_message_set_stream_path set_stream_path;
+				struct cec_message_report_physical_address report_physical_address;
+				cec_power_status_t power_status;
+				cec_menu_request_type_t menu_request_type;
+				cec_menu_state_t menu_state;
+				uint8_t buff[CEC_MESSAGE_MAX_OPERAND_LENGTH];
+			} operand;
 		} data;
 		uint8_t buff[CEC_MESSAGE_MAX_LENGTH];
 	} message;
@@ -263,9 +344,14 @@ typedef enum
 	CEC_ERROR_RX_MONITOR_DATA_BLOCK = 7
 } cec_result_t;
 
-const char * cec_opcode_to_str(uint8_t opcode);
 void cec_time_tick(void);
 void cec_init(void);
 cec_result_t cec_rx_message(struct cec_rx_message * message, struct cec_rx_filter * rx_filter);
 
+const char * cec_opcode_to_str(cec_opcode_t opcode);
+const char * cec_device_type_to_str(cec_device_type_t type);
+const char * cec_abort_reason_to_str(cec_abort_reason_t reason);
+const char * cec_menu_request_type_to_str(cec_menu_request_type_t req);
+const char * cec_menu_state_to_str(cec_menu_state_t state);
+const char * cec_power_status_to_str(cec_power_status_t status);
 #endif //_CEC_H

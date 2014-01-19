@@ -1,6 +1,6 @@
 #include <cec.h>
 
-const char * cec_opcode_to_str(uint8_t opcode)
+const char * cec_opcode_to_str(cec_opcode_t opcode)
 {
 	switch(opcode)
 	{
@@ -146,6 +146,97 @@ const char * cec_opcode_to_str(uint8_t opcode)
 			return "CDC";
 		case CEC_OPCODE_ABORT:
 			return "Abort";
+		default:
+			return "Unknown";
+	}
+}
+
+
+const char * cec_device_type_to_str(cec_device_type_t type)
+{
+	switch(type)
+	{
+		case CEC_DEVICE_TYPE_TV:
+			return "TV";
+		case CEC_DEVICE_TYPE_RECORDING_DEVICE:
+			return "Recording Device";
+		case CEC_DEVICE_TYPE_RESERVED:
+			return "Reserved";
+		case CEC_DEVICE_TYPE_STB:
+			return "STB";
+		case CEC_DEVICE_TYPE_PLAYBACK:
+			return "Playback";
+		case CEC_DEVICE_TYPE_AUDIO:
+			return "Audio";
+		case CEC_DEVICE_TYPE_SWITCH:
+			return "Switch";
+		case CEC_DEVICE_TYPE_VIDEO_PROCESSOR:
+			return "Video Processor";
+		default:
+			return "Unknown";
+	}
+}
+
+
+const char * cec_abort_reason_to_str(cec_abort_reason_t reason)
+{
+	switch(reason)
+	{
+		case CEC_ABORT_REASON_UNRECOGNIZED_OPCODE:
+			return "Unrecognized opcode";
+		case CEC_ABORT_REASON_NOT_IN_CORRECT_MODE_TO_RESPOND:
+			return "Not in correct mode to respond";
+		case CEC_ABORT_REASON_CANNOT_PROVIDE_SOURCE:
+			return "Cannot provide source";
+		case CEC_ABORT_REASON_INVALID_OPERAND:
+			return "Invalid operand";
+		case CEC_ABORT_REASON_REFUSED:
+			return "Refused";
+		default:
+			return "Unknown";
+	}
+}
+
+const char * cec_menu_request_type_to_str(cec_menu_request_type_t req)
+{
+	switch(req)
+	{
+		case CEC_MENU_REQUEST_TYPE_ACTIVATE:
+			return "Activate";
+		case CEC_MENU_REQUEST_TYPE_DEACTIVATE:
+			return "Deactivate";
+		case CEC_MENU_REQUEST_TYPE_QUERY:
+			return "Query";
+		default:
+			return "Unknown";
+	}
+}
+
+const char * cec_menu_state_to_str(cec_menu_state_t state)
+{
+	switch(state)
+	{
+		case CEC_MENU_STATE_ACTIVATED:
+			return "Activated";
+		case CEC_MENU_STATE_DEACTIVATED:
+			return "Deactivated";
+		default:
+			return "Unknown";
+	}
+}
+
+const char * cec_power_status_to_str(cec_power_status_t status)
+{
+	switch(status)
+	{
+		case CEC_POWER_STATUS_ON:
+			return "On";
+		case CEC_POWER_STATUS_STANDBY:
+			return "Standby";
+		case CEC_POWER_STATUS_IN_TRANSITION_STANDBY_TO_ON:
+			return "In transition Standby to On";
+		case CEC_POWER_STATUS_IN_TRANSITION_ON_TO_STANDBY:
+			return "In transition On to Standby";
 		default:
 			return "Unknown";
 	}

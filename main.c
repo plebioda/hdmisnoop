@@ -45,7 +45,73 @@ void EXTI0_IRQHandler(void)
 			}
 			if(msg.length > 0)
 			{
-				printf("| <%s>", cec_opcode_to_str(msg.message.data.opcode));
+				printf("| <%s> ", cec_opcode_to_str(msg.message.data.opcode));
+				if(CEC_OPCODE_ACTIVE_SOURCE == msg.message.data.opcode)
+				{
+					printf("[%d.%d.%d.%d] ", 
+						msg.message.data.operand.active_source.physical_address.A,
+						msg.message.data.operand.active_source.physical_address.B,
+						msg.message.data.operand.active_source.physical_address.C,
+						msg.message.data.operand.active_source.physical_address.D
+					      );
+				}
+				else if(CEC_OPCODE_ROUTING_INFORMATION == msg.message.data.opcode)
+				{
+					printf("[%d.%d.%d.%d] ", 
+						msg.message.data.operand.routing_information.physical_address.A,
+						msg.message.data.operand.routing_information.physical_address.B,
+						msg.message.data.operand.routing_information.physical_address.C,
+						msg.message.data.operand.routing_information.physical_address.D
+					      );
+
+				}
+				else if(CEC_OPCODE_SET_STREAM_PATH == msg.message.data.opcode)
+				{
+					printf("[%d.%d.%d.%d] ", 
+						msg.message.data.operand.set_stream_path.physical_address.A,
+						msg.message.data.operand.set_stream_path.physical_address.B,
+						msg.message.data.operand.set_stream_path.physical_address.C,
+						msg.message.data.operand.set_stream_path.physical_address.D
+					      );
+
+				}
+				else if(CEC_OPCODE_ROUTING_CHANGE == msg.message.data.opcode)
+				{
+					printf("[%d.%d.%d.%d -> %d.%d.%d.%d] ", 
+						msg.message.data.operand.routing_change.original_address.A,
+						msg.message.data.operand.routing_change.original_address.B,
+						msg.message.data.operand.routing_change.original_address.C,
+						msg.message.data.operand.routing_change.original_address.D,
+						msg.message.data.operand.routing_change.new_address.A,
+						msg.message.data.operand.routing_change.new_address.B,
+						msg.message.data.operand.routing_change.new_address.C,
+						msg.message.data.operand.routing_change.new_address.D
+					      );
+
+				}
+				else if(CEC_OPCODE_REPORT_PHYSICAL_ADDRESS == msg.message.data.opcode)
+				{
+					printf("[%d.%d.%d.%d %s] ", 
+						msg.message.data.operand.report_physical_address.physical_address.A,
+						msg.message.data.operand.report_physical_address.physical_address.B,
+						msg.message.data.operand.report_physical_address.physical_address.C,
+						msg.message.data.operand.report_physical_address.physical_address.D,
+						cec_device_type_to_str(msg.message.data.operand.report_physical_address.device_type)
+					      );
+
+				}
+				else if(CEC_OPCODE_REPORT_POWER_STATUS == msg.message.data.opcode)
+				{
+					printf("[%s] ", cec_power_status_to_str(msg.message.data.operand.power_status));
+				}
+				else if(CEC_OPCODE_MENU_REQUEST == msg.message.data.opcode)
+				{
+					printf("[%s] ", cec_menu_request_type_to_str(msg.message.data.operand.menu_request_type));
+				}
+				else if(CEC_OPCODE_MENU_STATUS == msg.message.data.opcode)
+				{
+					printf("[%s] ", cec_menu_state_to_str(msg.message.data.operand.menu_state));
+				}
 			}
 			if(CEC_ERROR_RX_DROPPED == ret)
 			{
