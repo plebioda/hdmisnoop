@@ -17,6 +17,9 @@ CSTD = gnu99
 # Linker script
 LINKER_SCRIPT = stm32.ld
 
+# Libs
+LIBS +=
+
 # Optimization level
 OPT = 0
 
@@ -162,7 +165,7 @@ $(HEX) : $(ELF)
 	$(ECHO) "OBJCOPY\t$@"
 	$(_@_)$(OBJCOPY) -Oihex $(ELF) $(HEX)
 
-$(ELF) : $(OBJS)
+$(ELF) : $(OBJS) $(LIBS)
 	$(ECHO) "LD\t$@"
 	$(_@_)$(CC) $(CFLAGS) $(LDFLAGS) -o $(ELF) $(OBJS) $(LIBS)
 
