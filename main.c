@@ -10,7 +10,9 @@ void EXTI0_IRQHandler(void)
 	static struct cec_rx_message msg;
 	static struct cec_rx_filter rxf = {
 		.receive = {
-			.all = CEC_RX_FILTER_NO_DEVICES
+			.device = {
+				.STB1 = 1
+			}
 		},
 		.monitor = {
 			.initiator = {
@@ -40,6 +42,10 @@ void EXTI0_IRQHandler(void)
 			for(int i=0;i<msg.length;i++)	
 			{
 				printf("0x%02x ", msg.message.buff[i]);
+			}
+			if(msg.length > 0)
+			{
+				printf("| <%s>", cec_opcode_to_str(msg.message.data.opcode));
 			}
 			if(CEC_ERROR_RX_DROPPED == ret)
 			{

@@ -78,6 +78,7 @@ CSRC += sys/clock.c
 CSRC += platform/stm32f4xx.c
 CSRC += platform/stm32f4xx_it.c
 CSRC += cec/cec.c
+CSRC += cec/cec_str.c
 
 # Assembler source
 ASRC += platform/stm32f4xx_startup.s

@@ -507,6 +507,7 @@ cec_result_t cec_rx_message(struct cec_rx_message * msg, struct cec_rx_filter * 
 
 }
 
+
 /**
  * @}
  */
