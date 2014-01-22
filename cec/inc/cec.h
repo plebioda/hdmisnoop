@@ -120,9 +120,9 @@
 
 #define CEC_DURATION(name)	((CEC_##name)/CEC_TIME_UNIT)
 
-#define CEC_MESSAGE_MAX_LENGTH		16
-#define CEC_MESSAGE_MAX_OPERAND_LENGTH	(CEC_MESSAGE_MAX_LENGTH-1)
-
+#define CEC_MESSAGE_MAX_LENGTH			16
+#define CEC_MESSAGE_MAX_OPERAND_LENGTH		(CEC_MESSAGE_MAX_LENGTH-1)
+#define CEC_MESSAGE_OSD_STRING_MAX_LENGTH	(CEC_MESSAGE_MAX_OPERAND_LENGTH-1)
 #define CEC_ACK		1
 #define CEC_NACK	0
 
@@ -311,6 +311,11 @@
 #define CEC_POWER_STATUS_STANDBY			1
 #define CEC_POWER_STATUS_IN_TRANSITION_STANDBY_TO_ON	2
 #define CEC_POWER_STATUS_IN_TRANSITION_ON_TO_STANDBY	3
+   
+#define CEC_DISPLAY_CONTROL_DEFAULT_TIME		0
+#define CEC_DISPLAY_CONTROL_UNTIL_CLEARED		(1<<6)
+#define CEC_DISPLAY_CONTROL_CLEAR_PREV_MSG		(1<<7)
+#define CEC_DISPLAY_CONTROL_RESERVED			((1<<7)|(1<<6))
 
 typedef uint8_t cec_logical_address_t;
 typedef uint8_t cec_opcode_t;
@@ -320,6 +325,7 @@ typedef uint8_t cec_menu_request_type_t;
 typedef uint8_t cec_menu_state_t;
 typedef uint8_t cec_power_status_t;
 typedef uint8_t cec_user_control_t;
+typedef uint8_t cec_display_control_t;
 
 struct cec_message_header
 {
@@ -362,6 +368,12 @@ struct cec_message_report_physical_address
 	cec_device_type_t device_type;
 };
 
+struct cec_message_set_osd_string
+{
+	cec_display_control_t display_control;
+	uint8_t string[CEC_MESSAGE_OSD_STRING_MAX_LENGTH];
+};
+
 struct cec_rx_message
 {
 	struct cec_message_header header;
@@ -383,6 +395,7 @@ struct cec_rx_message
 				cec_menu_request_type_t menu_request_type;
 				cec_menu_state_t menu_state;
 				cec_user_control_t user_control_pressed;
+				struct cec_message_set_osd_string set_osd_string;
 				uint8_t buff[CEC_MESSAGE_MAX_OPERAND_LENGTH];
 			} operand;
 		} data;
@@ -450,5 +463,6 @@ const char * cec_abort_reason_to_str(cec_abort_reason_t reason);
 const char * cec_menu_request_type_to_str(cec_menu_request_type_t req);
 const char * cec_menu_state_to_str(cec_menu_state_t state);
 const char * cec_power_status_to_str(cec_power_status_t status);
+const char * cec_display_control_to_str(cec_display_control_t control);
 const char * cec_user_control_to_str(cec_user_control_t uc);
 #endif //_CEC_H

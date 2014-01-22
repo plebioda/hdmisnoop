@@ -91,7 +91,7 @@ void EXTI0_IRQHandler(void)
 				}
 				else if(CEC_OPCODE_REPORT_PHYSICAL_ADDRESS == msg.message.data.opcode)
 				{
-					printf("[%d.%d.%d.%d][%s] ", 
+					printf("[%d.%d.%d.%d] [%s] ", 
 						msg.message.data.operand.report_physical_address.physical_address.A,
 						msg.message.data.operand.report_physical_address.physical_address.B,
 						msg.message.data.operand.report_physical_address.physical_address.C,
@@ -115,6 +115,20 @@ void EXTI0_IRQHandler(void)
 				else if(CEC_OPCODE_USER_CONTROL_PRESSED == msg.message.data.opcode)
 				{
 					printf("[%s] ", cec_user_control_to_str(msg.message.data.operand.user_control_pressed));
+				}
+				else if(CEC_OPCODE_SET_OSD_NAME == msg.message.data.opcode)
+				{
+					msg.message.data.operand.buff[msg.length-1] = '\0';
+					printf("[%s] ", (const char*)msg.message.data.operand.buff);
+				}
+				else if(CEC_OPCODE_SET_OSD_STRING == msg.message.data.opcode)
+				{
+					msg.message.data.operand.set_osd_string.string[msg.length-2] = '\0';
+					printf("[%s] [%s] ", 
+						cec_display_control_to_str(msg.message.data.operand.set_osd_string.display_control),
+						(const char*)msg.message.data.operand.set_osd_string.string
+					);
+
 				}
 			}
 			if(CEC_ERROR_RX_DROPPED == ret)

@@ -434,3 +434,21 @@ const char * cec_user_control_to_str(cec_user_control_t uc)
 			}
 	}
 }
+
+
+const char * cec_display_control_to_str(cec_display_control_t control)
+{
+	switch(control)
+	{
+	case CEC_DISPLAY_CONTROL_DEFAULT_TIME:
+		return "Display for default time";
+	case CEC_DISPLAY_CONTROL_UNTIL_CLEARED:
+		return "Display until cleared";
+	case CEC_DISPLAY_CONTROL_CLEAR_PREV_MSG:
+		return "Clear previous message";
+	case CEC_DISPLAY_CONTROL_RESERVED:
+		return "Reserved";
+	default:
+		return "Unknown";
+	}
+}
