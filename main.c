@@ -23,7 +23,7 @@ void EXTI0_IRQHandler(void)
 			},
 		}
 	};
-	if(EXTI->PR & EXTI_PR_PR0)
+	if(EXTI->PR & CEC_EXTI_PR)
 	{
 		cec_result_t ret = cec_rx_message(&msg, &rxf);
 		if(CEC_RESULT_OK == ret || CEC_ERROR_RX_DROPPED == ret)
@@ -91,7 +91,7 @@ void EXTI0_IRQHandler(void)
 				}
 				else if(CEC_OPCODE_REPORT_PHYSICAL_ADDRESS == msg.message.data.opcode)
 				{
-					printf("[%d.%d.%d.%d %s] ", 
+					printf("[%d.%d.%d.%d][%s] ", 
 						msg.message.data.operand.report_physical_address.physical_address.A,
 						msg.message.data.operand.report_physical_address.physical_address.B,
 						msg.message.data.operand.report_physical_address.physical_address.C,
@@ -112,6 +112,10 @@ void EXTI0_IRQHandler(void)
 				{
 					printf("[%s] ", cec_menu_state_to_str(msg.message.data.operand.menu_state));
 				}
+				else if(CEC_OPCODE_USER_CONTROL_PRESSED == msg.message.data.opcode)
+				{
+					printf("[%s] ", cec_user_control_to_str(msg.message.data.operand.user_control_pressed));
+				}
 			}
 			if(CEC_ERROR_RX_DROPPED == ret)
 			{
@@ -125,7 +129,7 @@ void EXTI0_IRQHandler(void)
 		}
 		memset(&msg, 0, sizeof(msg));
 
-		EXTI->PR = EXTI_PR_PR0;
+		EXTI->PR = CEC_EXTI_PR;
 	}
 
 }

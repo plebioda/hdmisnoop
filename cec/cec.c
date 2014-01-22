@@ -350,6 +350,7 @@ static void cec_init_gpio(void)
 	 * Push-up Push-down 
 	 */
 	CEC_GPIO->PUPDR &=~(0x3<<(CEC_PIN<<1));
+	CEC_GPIO->PUPDR |= (CEC_PUPD<<(CEC_PIN<<1));
 }
 
 static void cec_init_nvic(void)
@@ -372,7 +373,7 @@ static void cec_init_exti(void)
 	 */
 	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
 	SYSCFG->EXTICR[CEC_EXTICR] &=~(0xf<<CEC_EXTI_LINE);
-	SYSCFG->EXTICR[CEC_EXTICR] |= (CEC_EXTI_PIN<<CEC_EXTI_LINE);
+	SYSCFG->EXTICR[CEC_EXTICR] |= (CEC_EXTI_PIN<<(CEC_EXTI_LINE<<2));
 
 	/*
 	 * Mask interrupt

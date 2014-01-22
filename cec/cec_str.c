@@ -242,3 +242,195 @@ const char * cec_power_status_to_str(cec_power_status_t status)
 	}
 }
 
+const char * cec_logical_address_to_str(cec_logical_address_t addr)
+{
+	switch(addr)
+	{
+		case CEC_LOGICAL_ADDRESS_TV:
+			return "TV";
+		case CEC_LOGICAL_ADDRESS_RECORDING_DEVICE_1:
+			return "Recording Device 1";
+		case CEC_LOGICAL_ADDRESS_RECORDING_DEVICE_2:
+			return "Recording Device 2";
+		case CEC_LOGICAL_ADDRESS_STB_1:
+			return "STB 1";
+		case CEC_LOGICAL_ADDRESS_PLAYBACK_1:
+			return "Playback 1";
+		case CEC_LOGICAL_ADDRESS_AUDIO_SYSTEM:
+			return "Audio System";
+		case CEC_LOGICAL_ADDRESS_STB_2:
+			return "STB 2";
+		case CEC_LOGICAL_ADDRESS_STB_3:
+			return "STB 3";
+		case CEC_LOGICAL_ADDRESS_PLAYBACK_2:
+			return "Playback 2";
+		case CEC_LOGICAL_ADDRESS_RECORDING_DEVICE_3:
+			return "Recording Device 3";
+		case CEC_LOGICAL_ADDRESS_FREE_USE:
+			return "Free Use";
+		case CEC_LOGICAL_ADDRESS_UREGISTERED:
+			return "Unregistered";
+		case CEC_LOGICAL_ADDRESS_BROADCAST:
+			return "Broadcast";
+		default:
+			return "Unknown";
+	}
+}
+
+const char * cec_user_control_to_str(cec_user_control_t uc)
+{
+	switch(uc)
+	{
+		case CEC_USER_CONTROL_Select:
+			return "Select";
+		case CEC_USER_CONTROL_Up:
+			return "Up";
+		case CEC_USER_CONTROL_Down:
+			return "Down";
+		case CEC_USER_CONTROL_Left:
+			return "Left";
+		case CEC_USER_CONTROL_Right:
+			return "Right";
+		case CEC_USER_CONTROL_RightUp:
+			return "Right-Up";
+		case CEC_USER_CONTROL_RightDown:
+			return "Right-Down";
+		case CEC_USER_CONTROL_LeftUp:
+			return "Left-Up";
+		case CEC_USER_CONTROL_LeftDown:
+			return "Left-Down";
+		case CEC_USER_CONTROL_RootMenu:
+			return "Root Menu";
+		case CEC_USER_CONTROL_SetupMenu:
+			return "Setup Menu";
+		case CEC_USER_CONTROL_ContentsMenu:
+			return "Contents Menu";
+		case CEC_USER_CONTROL_FavoriteMenu:
+			return "Favorite Menu";
+		case CEC_USER_CONTROL_Exit:
+			return "Exit";
+		case CEC_USER_CONTROL_Number0:
+			return "0";
+		case CEC_USER_CONTROL_Number1:
+			return "1";
+		case CEC_USER_CONTROL_Number2:
+			return "2";
+		case CEC_USER_CONTROL_Number3:
+			return "3";
+		case CEC_USER_CONTROL_Number4:
+			return "4";
+		case CEC_USER_CONTROL_Number5:
+			return "5";
+		case CEC_USER_CONTROL_Number6:
+			return "6";
+		case CEC_USER_CONTROL_Number7:
+			return "7";
+		case CEC_USER_CONTROL_Number8:
+			return "8";
+		case CEC_USER_CONTROL_Number9:
+			return "9";
+		case CEC_USER_CONTROL_Dot:
+			return "Dot";
+		case CEC_USER_CONTROL_Enter:
+			return "Enter";
+		case CEC_USER_CONTROL_Clear:
+			return "Clear";
+		case CEC_USER_CONTROL_ChannelUp:
+			return "Channel Up";
+		case CEC_USER_CONTROL_ChannelDown:
+			return "Channel Down";
+		case CEC_USER_CONTROL_PreviousChannel:
+			return "Previous Channel";
+		case CEC_USER_CONTROL_SoundSelect:
+			return "Sound Select";
+		case CEC_USER_CONTROL_InputSelect:
+			return "Input Select";
+		case CEC_USER_CONTROL_DisplayInformation:
+			return "Display Information";
+		case CEC_USER_CONTROL_Help:
+			return "Help";
+		case CEC_USER_CONTROL_PageUp:
+			return "Page Up";
+		case CEC_USER_CONTROL_PageDown:
+			return "Page Down";
+		case CEC_USER_CONTROL_Power:
+			return "Power";
+		case CEC_USER_CONTROL_VolumeUp:
+			return "Volume Up";
+		case CEC_USER_CONTROL_VolumeDown:
+			return "Volume Down";
+		case CEC_USER_CONTROL_Mute:
+			return "Mute";
+		case CEC_USER_CONTROL_Play:
+			return "Play";
+		case CEC_USER_CONTROL_Stop:
+			return "Stop";
+		case CEC_USER_CONTROL_Pause:
+			return "Pause";
+		case CEC_USER_CONTROL_Record:
+			return "Record";
+		case CEC_USER_CONTROL_Rewind:
+			return "Rewind";
+		case CEC_USER_CONTROL_FastForward:
+			return "Fast Forward";
+		case CEC_USER_CONTROL_Eject:
+			return "Eject";
+		case CEC_USER_CONTROL_Forward:
+			return "Forward";
+		case CEC_USER_CONTROL_Backward:
+			return "Backward";
+		case CEC_USER_CONTROL_Angle:
+			return "Angle";
+		case CEC_USER_CONTROL_Subpicture:
+			return "Sub picture";
+		case CEC_USER_CONTROL_VideoOnDemand:
+			return "VOD";
+		case CEC_USER_CONTROL_EPG:
+			return "EPG";
+		case CEC_USER_CONTROL_TimerProgramming:
+			return "TImer Programming";
+		case CEC_USER_CONTROL_InitialConfig:
+			return "Initial Config";
+		case CEC_USER_CONTROL_PlayFunction:
+			return "Play Function";
+		case CEC_USER_CONTROL_PausePlayFunction:
+			return "Pause-Play Function";
+		case CEC_USER_CONTROL_RecordFunction:
+			return "Record Function";
+		case CEC_USER_CONTROL_PauseRecordFunction:
+			return "Pause Record Function";
+		case CEC_USER_CONTROL_StopFunction:
+			return "Stop Function";
+		case CEC_USER_CONTROL_MuteFunction:
+			return "Mute Function";
+		case CEC_USER_CONTROL_RestoreVolumeFunction:
+			return "Restore Volume Function";
+		case CEC_USER_CONTROL_TuneFunction:
+			return "Tune Function";
+		case CEC_USER_CONTROL_SelectDiskFunction:
+			return "Select Disk Function";
+		case CEC_USER_CONTROL_SelectAVInputFunction:
+			return "Select A/V Input Function";
+		case CEC_USER_CONTROL_SelectAudioInputFunction:
+			return "Select Audio Input Function";
+		case CEC_USER_CONTROL_F1Blue:
+			return "F1 (Blue)";
+		case CEC_USER_CONTROL_F2Red:
+			return "F2 (Red)";
+		case CEC_USER_CONTROL_F3Green:
+			return "F3 (Green)";
+		case CEC_USER_CONTROL_F4Yellow:
+			return "F4 (Yellow)";
+		case CEC_USER_CONTROL_F5:
+			return "F5";
+		default:
+			if(uc>CEC_USER_CONTROL_MAX)
+			{
+				return "Unknown";
+			}
+			else
+			{
+				return "Reserved";
+			}
+	}
+}
