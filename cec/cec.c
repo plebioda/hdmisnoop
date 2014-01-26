@@ -127,7 +127,7 @@ static void cec_tx_data_bit(uint8_t val)
 	cec_wait( val ? CEC_DURATION(DATA1_BIT_NOM_H) : CEC_DURATION(DATA0_BIT_NOM_H));
 }
 
-static uint8_t cec_tx_ack(void)
+static uint8_t cec_tx_ack()
 {
 	if(!cec_get_pin())
 	{
@@ -217,29 +217,23 @@ static uint8_t cec_rx_data_bit(void)
 	return data;
 }
 
-static uint8_t cec_rx_ack(uint8_t eom)
+static uint8_t cec_rx_ack()
 {
 	uint8_t data = cec_rx_data_bit();
+
 	if(data&CEC_RX_DATA_BIT_ERROR)
 	{
-		if(eom)
+		if((data&CEC_RX_DATA_BIT_ERROR_T) && !(data&CEC_RX_DATA_BIT_ERROR_L0) && !(data&CEC_RX_DATA_BIT_ERROR_L1))
 		{
-			if((data&CEC_RX_DATA_BIT_ERROR_T) && !(data&CEC_RX_DATA_BIT_ERROR_L0) && !(data&CEC_RX_DATA_BIT_ERROR_L1))
-			{
-				data &= CEC_RX_DATA_BIT_MASK;
-
-				return data ? 0 : 1;
-			}
+			data &= CEC_RX_DATA_BIT_MASK;
 		}
 		else
 		{
-			return 0;
+			printf("DUPA\n");
 		}
 	}
-	else
-	{
-		return data ? 0 : 1;
-	}
+	
+	return data ? 0 : 1;
 }
 
 
@@ -289,7 +283,7 @@ static cec_block_t cec_rx_block(cec_ack_op_t ack)
 	}
 	else if(CEC_ACK_OP_RX_ACK == ack)
 	{
-		data = cec_rx_ack(block.eom);
+		data = cec_rx_ack();
 		if(data&CEC_RX_DATA_BIT_ERROR)
 		{
 			block.status = CEC_BLOCK_STATUS_ERROR_ACK;
@@ -301,17 +295,17 @@ static cec_block_t cec_rx_block(cec_ack_op_t ack)
 	return block;
 }
 
-static inline cec_block_t cec_rx_header_block(void)
+static inline cec_block_t cec_rx_header_block()
 {
 	return cec_rx_block(CEC_ACK_OP_NACK);
 }
 
-static inline cec_block_t cec_rx_data_block(void)
+static inline cec_block_t cec_rx_data_block()
 {
 	return cec_rx_block(CEC_ACK_OP_ACK);
 }
 
-static inline cec_block_t cec_monitor_data_block(void)
+static inline cec_block_t cec_monitor_data_block()
 {
 	return cec_rx_block(CEC_ACK_OP_RX_ACK);
 }
@@ -452,14 +446,29 @@ cec_result_t cec_rx_message(struct cec_rx_message * msg, struct cec_rx_filter * 
 
 	if(cec_rx_filter_ack(rxf, msg->header.follower))
 	{
-		msg->ack = cec_tx_ack();
+		if(CEC_LOGICAL_ADDRESS_BROADCAST == msg->header.follower)
+		{
+			msg->ack = !cec_rx_ack();
+		}
+		else
+		{
+			msg->ack = cec_tx_ack();
+		}
 	}
 	else
 	{
 		if(cec_rx_filter_monitor(rxf, msg->header))
 		{
-			msg->ack = cec_rx_ack(block.eom);
+			msg->ack = cec_rx_ack();
+			if(CEC_LOGICAL_ADDRESS_BROADCAST == msg->header.follower)
+			{
+				msg->ack = !msg->ack;
+			}
 			monitor = 1;
+			if(!block.eom && !msg->ack)
+			{
+				return CEC_ERROR_RX_MONITOR_NACK;
+			}
 		}
 		else
 		{
@@ -496,7 +505,7 @@ cec_result_t cec_rx_message(struct cec_rx_message * msg, struct cec_rx_filter * 
 			}
 			else
 			{
-				ret = CEC_ERROR_RX_DATA_BLOCK;
+				ret = CEC_ERROR_RX_MONITOR_DATA_BLOCK;
 				break;
 			}
 		}

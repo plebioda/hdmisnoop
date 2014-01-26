@@ -329,8 +329,8 @@ typedef uint8_t cec_display_control_t;
 
 struct cec_message_header
 {
-	uint8_t initiator : 4;
-	uint8_t follower  : 4;
+	cec_logical_address_t initiator : 4;
+	cec_logical_address_t follower  : 4;
 };
 
 struct cec_physical_address
@@ -465,4 +465,5 @@ const char * cec_menu_state_to_str(cec_menu_state_t state);
 const char * cec_power_status_to_str(cec_power_status_t status);
 const char * cec_display_control_to_str(cec_display_control_t control);
 const char * cec_user_control_to_str(cec_user_control_t uc);
+const char * cec_result_to_str(cec_result_t res);
 #endif //_CEC_H

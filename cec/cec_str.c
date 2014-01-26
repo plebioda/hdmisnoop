@@ -452,3 +452,29 @@ const char * cec_display_control_to_str(cec_display_control_t control)
 		return "Unknown";
 	}
 }
+
+const char * cec_result_to_str(cec_result_t res)
+{
+	switch(res)
+	{
+		case CEC_RESULT_OK:
+			return "CEC_RESULT_OK";
+		case CEC_ERROR_PARAM:
+			return "CEC_ERROR_PARAM";
+		case CEC_ERROR_RX_DROPPED:
+			return "CEC_ERROR_RX_DROPPED";
+		case CEC_ERROR_RX_START_BIT:
+			return "CEC_ERROR_RX_START_BIT";
+		case CEC_ERROR_RX_HEADER_BLOCK:
+			return "CEC_ERROR_RX_HEADER_BLOCK";
+		case CEC_ERROR_RX_DATA_BLOCK:
+			return "CEC_ERROR_RX_DATA_BLOCK";
+		case CEC_ERROR_RX_MONITOR_NACK:
+			return "CEC_ERROR_RX_MONITOR_NACK";
+		case CEC_ERROR_RX_MONITOR_DATA_BLOCK:
+			return "CEC_ERROR_RX_MONITOR_DATA_BLOCK";
+		default:
+			"Unknown";
+	}
+}
+
