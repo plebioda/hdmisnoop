@@ -5,11 +5,41 @@
 
 #define USB_OTG_FS_BASE			(AHB2PERIPH_BASE + 0x00000000)
 #define USB_OTG_HS_BASE			(AHB1PERIPH_BASE + 0x00040000)
-
 #define USB_OTG_FS_CGCSR_BASE		(USB_OTG_FS_BASE + 0x00000000)
 #define USB_OTG_FS_HMCSR_BASE		(USB_OTG_FS_BASE + 0x00000400)
 #define USB_OTG_FS_DMCSR_BASE		(USB_OTG_FS_BASE + 0x00000800)
 #define USB_OTG_FS_DIEPCTL0_BASE	(USB_OTG_FS_BASE + 0x00000900)
+#define USB_OTG_FS_DIEPCTLx_BASE(x)	(USB_OTG_FS_DIEPCTL0_BASE + (x)*0x20)
+#define USB_OTG_FS_DIEPINT0_BASE	(USB_OTG_FS_BASE + 0x00000908)
+#define USB_OTG_FS_DIEPINTx_BASE(x)	(USB_OTG_FS_DIEPINT0_BASE + (x)*0x20)
+#define USB_OTG_FS_DIEPSIZ0_BASE	(USB_OTG_FS_BASE + 0x00000910)
+#define USB_OTG_FS_DIEPSIZx_BASE(x)	(USB_OTG_FS_DIEPSIZ0_BASE + (x)*0x20)
+#define USB_OTG_FS_DTXFSTS0_BASE	(USB_OTG_FS_BASE + 0x00000918)
+#define USB_OTG_FS_DTXFSTSx_BASE(x)	(USB_OTG_FS_DTXFSTS0_BASE + (x)*0x20)
+#define USB_OTG_FS_DOEPCTL0_BASE	(USB_OTG_FS_BASE + 0x00000B00)
+#define USB_OTG_FS_DOEPCTLx_BASE(x)	(USB_OTG_FS_DOEPCTL0_BASE + (x)*0x20)
+#define USB_OTG_FS_DOEPINT0_BASE	(USB_OTG_FS_BASE + 0x00000B08)
+#define USB_OTG_FS_DOEPINTx_BASE(x)	(USB_OTG_FS_DOEPINT0_BASE + (x)*0x20)
+#define USB_OTG_FS_DOEPSIZ0_BASE	(USB_OTG_FS_BASE + 0x00000B08)
+#define USB_OTG_FS_DOEPSIZx_BASE(x)	(USB_OTG_FS_DOEPSIZ0_BASE + (x)*0x20)
+
+#define USB_OTG_FS_CGCSR		((USB_OTG_FS_CGCSR_T*)USB_OTG_FS_CGCSR_BASE)
+#define USB_OTG_FS_HMCSR		((USB_OTG_FS_HMCSR_T*)USB_OTG_FS_HMCSR_BASE)
+#define USB_OTG_FS_DMCSR		((USB_OTG_FS_DMCSR_T*)USB_OTG_FS_DMCSR_BASE)
+#define USB_OTG_FS_DIEPCTL0		((USB_OTG_FS_DIEPCTL0_T*)USB_OTG_FS_DIEPCTL0_BASE)
+#define USB_OTG_FS_DIEPCTL(x)		((USB_OTG_FS_DIEPCTLx_T*)USB_OTG_FS_DIEPCTLx_BASE((x)))
+#define USB_OTG_FS_DIEPINT0		((USB_OTG_FS_DIEPINTx_T*)USB_OTG_FS_DIEPINT0_BASE)
+#define USB_OTG_FS_DIEPINT(x)		((USB_OTG_FS_DIEPINTx_T*)USB_OTG_FS_DIEPINTx_BASE((x)))
+#define USB_OTG_FS_DIEPSIZ0		((USB_OTG_FS_DIEPSIZ0_T*)USB_OTG_FS_DIEPSIZ0_BASE)
+#define USB_OTG_FS_DIEPSIZ(x)		((USB_OTG_FS_DIEPSIZx_T*)USB_OTG_FS_DIEPSIZx_BASE((x)))
+#define USB_OTG_FS_DTXFSTS0		((USB_OTG_FS_DTXFSTSx_T*)USB_OTG_FS_DTXFSTS0_BASE)
+#define USB_OTG_FS_DTXFSTS(x)		((USB_OTG_FS_DTXFSTSx_T*)USB_OTG_FS_DTXFSTSx_BASE((x)))
+#define USB_OTG_FS_DOEPCTL0		((USB_OTG_FS_DOEPCTL0_T*)USB_OTG_FS_DOEPCTL0_BASE)
+#define USB_OTG_FS_DOEPCTL(x)		((USB_OTG_FS_DOEPCTLx_T*)USB_OTG_FS_DOEPCTLx_BASE((x)))
+#define USB_OTG_FS_DOEPINT0		((USB_OTG_FS_DOEPINTx_T*)USB_OTG_FS_DOEPINT0_BASE)
+#define USB_OTG_FS_DOEPINT(x)		((USB_OTG_FS_DOEPINTx_T*)USB_OTG_FS_DOEPINTx_BASE((x)))
+#define USB_OTG_FS_DOEPSIZ0		((USB_OTG_FS_DOEPSIZ0_T*)USB_OTG_FS_DOEPSIZ0_BASE)
+#define USB_OTG_FS_DOEPSIZ(x)		((USB_OTG_FS_DOEPSIZx_T*)USB_OTG_FS_DOEPSIZx_BASE((x)))
 
 
 typedef union
@@ -287,7 +317,7 @@ typedef struct
 	__IO USB_OTG_FS_CID_T 		CID;			/* 0x03C : OTG FS core ID register */
 	__IO uint32_t 			reserved_0x040[48];	/* 0x040 : */
 	__IO USB_OTG_FS_HPTXFSIZ_T 	HPTXFSIZ;		/* 0x100 : OTG FS host periodic transmit FIFO size register */
-	__IO USB_OTG_FS_DIPETXFx_T 	DIEPTXFx[11];		/* 0x104 : */
+	__IO USB_OTG_FS_DIEPTXFx_T 	DIEPTXFx[11];		/* 0x104 : */
 } USB_OTG_FS_CGCSR_T;
 
 typedef union
@@ -385,7 +415,7 @@ typedef union
 		uint16_t IEPM		:16;	/* Bits 15:0  : IN endpoint interrupt mask bits */
 		uint16_t OEPM		:16;	/* Bits 31:16 : OUT endpoint interrupt mask bits */ 
 	} b;
-} USB_OTG_FS_DAINT_T;
+} USB_OTG_FS_DAINTMSK_T;
 
 typedef union
 {
@@ -402,8 +432,8 @@ typedef union
 	uint32_t reg;
 	struct
 	{
-		uint16_t DVBUSP		:12;	/* Bits 11:0  : VBUS pulsing time */
-		uint16_t reserved_31_12	:20;	/* Bits 31:12 : reserved */
+		uint32_t DVBUSP		:12;	/* Bits 11:0  : VBUS pulsing time */
+		uint32_t reserved_31_12	:20;	/* Bits 31:12 : reserved */
 	} b;
 } USB_OTG_FS_DVBUSPULS_T;
 
@@ -533,6 +563,115 @@ typedef union
 		uint32_t EPDIS		: 1;	/* Bit 30      : Endpoint disable */
 		uint32_t EPENA		: 1;	/* Bit 31      : Endpoint enable */
 	} b;
-} USB_OTG_FS_DIEPCTLx_T;
+} USB_OTG_FS_DOEPCTLx_T;
+
+typedef union
+{
+	uint32_t reg;
+	struct
+	{
+		uint32_t XFRC		: 1;	/* Bit 0       : Transfer completed interrupt */
+		uint32_t EPDISD		: 1;	/* Bit 1       : Endpoint disabled interrupt */
+		uint32_t reserved_2	: 1;	/* Bit 2       : reserved */
+		uint32_t TOC		: 1;	/* Bit 3       : Timout condition */
+		uint32_t ITTXFE		: 1;	/* Bit 4       : IN token received when Tx FIFO is empty */
+		uint32_t reserved_5 	: 1;	/* Bit 5       : reserved */
+		uint32_t INEPNE		: 1;	/* Bit 6       : IN endpoint NAK effective */
+		uint32_t TXFE		: 1;	/* Bit 7       : Transmit FIFO empty */
+		uint32_t reserved_31_8	:24;	/* Bits 31:8   : reserved */
+	} b;
+} USB_OTG_FS_DIEPINTx_T;
+
+typedef union
+{
+	uint32_t reg;
+	struct
+	{
+		uint32_t XFRC		: 1;	/* Bit 0       : Transfer completed interrupt */
+		uint32_t EPDISD		: 1;	/* Bit 1       : Endpoint disabled interrupt */
+		uint32_t reserved_2	: 1;	/* Bit 2       : reserved */
+		uint32_t STUP		: 1;	/* Bit 3       : SETUP phase done */
+		uint32_t OTEPDIS	: 1;	/* Bit 4       : OUT token received when endpoint disabled */
+		uint32_t reserved_5 	: 1;	/* Bit 5       : reserved */
+		uint32_t B2BSTUP	: 1;	/* Bit 6       : Back-to-Back SETUP packets received */
+		uint32_t reserved_31_7	:25;	/* Bits 31:7   : reserved */
+	} b;
+} USB_OTG_FS_DOEPINTx_T;
+
+typedef union
+{
+	uint32_t reg;
+	struct
+	{
+		uint32_t XFRSIZ		: 7;	/* Bits 6:0    : Transfer size */
+		uint32_t reserved_18_7	:12;	/* Bits 18:7   : reserved */
+		uint32_t PKTCNT		: 2;	/* Bits 20:19  : Packet count */
+		uint32_t reserved_31_21 :11;	/* Bits 31:21  : reserved */
+	} b;
+} USB_OTG_FS_DIEPSIZ0_T;
+
+typedef union
+{
+	uint32_t reg;
+	struct
+	{
+		uint32_t XFRSIZ		: 7;	/* Bits 6:0    : Transfer size */
+		uint32_t reserved_18_7	:12;	/* Bits 18:7   : reserved */
+		uint32_t PKTCNT		: 1;	/* Bit 19      : Packet count */
+		uint32_t reserved_28_20 : 9;	/* Bits 28:20  : reserved */
+		uint32_t STUPCNT	: 2;	/* Bits 30:29  : SETUP packet count */
+		uint32_t reserved_31	: 1;	/* Bit 31      : reserved */
+	} b;
+} USB_OTG_FS_DOEPSIZ0_T;
+
+typedef union
+{
+	uint32_t reg;
+	struct
+	{
+		uint32_t XFRSIZ		:19;	/* Bits 18:0   : Transfer size */
+		uint32_t PKTCNT		:10;	/* Bits 28:19  : Packet count */
+		uint32_t MCNT		: 2;	/* Bits 30:29  : Multi count */
+		uint32_t reserved_31	: 1;	/* Bits 31     : reserved */
+	} b;
+} USB_OTG_FS_DIEPSIZx_T;
+
+typedef union
+{
+	uint32_t reg;
+	struct
+	{
+		uint32_t XFRSIZ		:19;	/* Bits 18:0   : Transfer size */
+		uint32_t PKTCNT		:10;	/* Bits 28:19  : Packet count */
+		uint32_t RXDPID		: 2;	/* Bits 30:29  : Received data PID [isochronous]*/
+						/*               SETUP packet count [control]*/
+		uint32_t reserved_31	: 1;	/* Bits 31     : reserved */
+	} b;
+} USB_OTG_FS_DOEPSIZx_T;
+
+#define STUPCNT	RXDPID
+
+typedef union
+{
+	uint32_t reg;
+	struct
+	{
+		uint16_t INEPTFSAV	:16;	/* Bits 15:0   : IN endpoint Tx FIFO space available */
+		uint32_t reserved_31_16 :16;	/* Bits 31:16  : reserved */
+	} b;
+} USB_OTG_FS_DTXFSTSx_T;
+
+typedef union
+{
+	uint32_t reg;
+	struct
+	{
+		uint32_t STPPCLK	: 1;	/* Bit 0       : Stop PHY clock */
+		uint32_t GATEHCLK	: 1;	/* Bit 1       : Gate HCLK */
+		uint32_t reserved_3_2	: 2;	/* Bits 3:2    : reserved */
+		uint32_t PHYSUSP	: 1;	/* Bit 4       : PHY suspended */
+		uint32_t reserved_31_5	:27;	/* Bits 31:5   : reserved */
+	} b;
+} USB_OTG_FS_PCGCCTL_T;
 
 #endif //_USBD_TYPES_H
