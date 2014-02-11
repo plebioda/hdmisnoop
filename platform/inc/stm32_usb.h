@@ -22,6 +22,7 @@
 #define USB_OTG_FS_DOEPINTx_BASE(x)	(USB_OTG_FS_DOEPINT0_BASE + (x)*0x20)
 #define USB_OTG_FS_DOEPSIZ0_BASE	(USB_OTG_FS_BASE + 0x00000B08)
 #define USB_OTG_FS_DOEPSIZx_BASE(x)	(USB_OTG_FS_DOEPSIZ0_BASE + (x)*0x20)
+#define USB_OTG_FS_PCGCCTL_BASE		(USB_OTG_FS_BASE + 0x00000E00)
 
 #define USB_OTG_FS_CGCSR		((USB_OTG_FS_CGCSR_T*)USB_OTG_FS_CGCSR_BASE)
 #define USB_OTG_FS_HMCSR		((USB_OTG_FS_HMCSR_T*)USB_OTG_FS_HMCSR_BASE)
@@ -40,6 +41,7 @@
 #define USB_OTG_FS_DOEPINT(x)		((USB_OTG_FS_DOEPINTx_T*)USB_OTG_FS_DOEPINTx_BASE((x)))
 #define USB_OTG_FS_DOEPSIZ0		((USB_OTG_FS_DOEPSIZ0_T*)USB_OTG_FS_DOEPSIZ0_BASE)
 #define USB_OTG_FS_DOEPSIZ(x)		((USB_OTG_FS_DOEPSIZx_T*)USB_OTG_FS_DOEPSIZx_BASE((x)))
+#define USB_OTG_FS_PCGCCTL		((USB_OTG_FS_PCGCCTL_T*)USB_OTG_FS_PCGCCTL_BASE)
 
 
 typedef union
@@ -243,9 +245,16 @@ typedef union
 	struct
 	{
 		uint16_t NPTXFD		:16;	/* Bits 15:0  : Non-periodic Tx FIFO depth */
-	       	uint16_t reserved_31_16 :16;	/* Bits 31:16 : reserved */
-	} b;
+	       	uint16_t NPTXFSA	:16;	/* Bits 31:16 : Non-periodic transmit RAM start address */
+	} h;
+	struct
+	{
+		uint16_t TX0FD		:16;	/* Bits 15:0  : Endpoint 0 Tx FIFO depth */
+		uint16_t TX0FSA		:16;	/* Bits 31:16 : Endpoint 0 transmit RAM start address */
+	} d;
 } USB_OTG_FS_HNPTXFSIZ_T;
+
+typedef USB_OTG_FS_HNPTXFSIZ_T USB_OTG_FS_DIEPTXF0_T;
 
 typedef union
 {
