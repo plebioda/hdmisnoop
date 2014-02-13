@@ -1,10 +1,9 @@
-#ifndef _USBD_TYPES_H
-#define _USBD_TYPES_H
+#ifndef _STM32_USB_FS_H
+#define _STM32_USB_FS_H
 
 #include <stm32f4xx.h>
 
 #define USB_OTG_FS_BASE			(AHB2PERIPH_BASE + 0x00000000)
-#define USB_OTG_HS_BASE			(AHB1PERIPH_BASE + 0x00040000)
 #define USB_OTG_FS_CGCSR_BASE		(USB_OTG_FS_BASE + 0x00000000)
 #define USB_OTG_FS_HMCSR_BASE		(USB_OTG_FS_BASE + 0x00000400)
 #define USB_OTG_FS_DMCSR_BASE		(USB_OTG_FS_BASE + 0x00000800)
@@ -23,6 +22,8 @@
 #define USB_OTG_FS_DOEPSIZ0_BASE	(USB_OTG_FS_BASE + 0x00000B08)
 #define USB_OTG_FS_DOEPSIZx_BASE(x)	(USB_OTG_FS_DOEPSIZ0_BASE + (x)*0x20)
 #define USB_OTG_FS_PCGCCTL_BASE		(USB_OTG_FS_BASE + 0x00000E00)
+#define USB_OTG_FS_DFIFO0_BASE		(USB_OTG_FS_BASE + 0x00001000)
+#define USB_OTG_FS_DFIFOx_BASE(x)	(USB_OTG_FS_DFIFO0_BASE + (x)*0x1000)
 
 #define USB_OTG_FS_CGCSR		((USB_OTG_FS_CGCSR_T*)USB_OTG_FS_CGCSR_BASE)
 #define USB_OTG_FS_HMCSR		((USB_OTG_FS_HMCSR_T*)USB_OTG_FS_HMCSR_BASE)
@@ -42,7 +43,10 @@
 #define USB_OTG_FS_DOEPSIZ0		((USB_OTG_FS_DOEPSIZ0_T*)USB_OTG_FS_DOEPSIZ0_BASE)
 #define USB_OTG_FS_DOEPSIZ(x)		((USB_OTG_FS_DOEPSIZx_T*)USB_OTG_FS_DOEPSIZx_BASE((x)))
 #define USB_OTG_FS_PCGCCTL		((USB_OTG_FS_PCGCCTL_T*)USB_OTG_FS_PCGCCTL_BASE)
+#define USB_OTG_FS_DFIFO(x)		((uint32_t*)USB_OTG_FS_DFIFOx_BASE((x)))
 
+#define USB_OTG_FS_DEVICE_MODE_FIFO_NUM		3
+#define USB_OTG_FS_HOST_MODE_FIFO_NUM		7
 
 typedef union
 {
@@ -72,8 +76,8 @@ typedef union
 	{
 		uint32_t reserved_1_0	: 2;	/* Bits 1:0   : reserved */
 		uint32_t SEDET		: 1;	/* Bit 2      : Session end detected */
-		uint32_t SRSSCHG	: 1; 	/* Bit 3      : Session request success status change */
 		uint32_t reserved_7_3	: 5;	/* Bits 7:3   : reserved */
+		uint32_t SRSSCHG	: 1; 	/* Bit 8      : Session request success status change */
 		uint32_t HNSSCHG	: 1; 	/* Bit 9      : host negotiation success status change */
 		uint32_t reserved_16_10 : 7;	/* Bits 16:10 : reserved */
 		uint32_t HNGDET		: 1; 	/* Bit 17     : Host negotiation detect */
@@ -207,16 +211,19 @@ typedef union
 	} b;
 } USB_OTG_FS_GINTMSK_T;
 
+typedef enum
+{
+	USB_GRXSTSP_PKSTS_GLOBAL_OUT_NAK = 1,
+	USB_GRXSTSP_PKSTS_OUT_PACKET_REVEIVED = 2,
+	USB_GRXSTSP_PKSTS_OUT_TX_COMPLETED = 3,
+	USB_GRXSTSP_PKSTS_SETUP_COMPLETED = 4,
+	USB_GRXSTSP_PKSTS_SETUP_PACKET_RECEIVED = 6
+
+} USB_GRXSTSP_PKTSTS_T;
+
 typedef union
 {
 	uint32_t reg;
-	union	
-	{
-	struct
-	{
-		/*TODO: Host mode*/
-		uint32_t reg;
-	} h;
 	struct 
 	{
 		uint32_t EPNUM		: 4;	/* Bits 3:0   : Endpoint number*/
@@ -225,7 +232,6 @@ typedef union
 		uint32_t PKTSTS		: 4;	/* Bits 20:17 : Packet status */
 		uint32_t FRMNUM		: 4;	/* Bits 24:21 : Frame number */
 		uint32_t reserved_31_25 : 7;	/* Bits 31:25 : reserved */
-	} d;
 	} b;
 } USB_OTG_FS_GRXSTSx_T;
 
@@ -683,4 +689,8 @@ typedef union
 	} b;
 } USB_OTG_FS_PCGCCTL_T;
 
-#endif //_USBD_TYPES_H
+
+int usb_init_io(void);
+
+
+#endif //_STM32_USB_FS_H

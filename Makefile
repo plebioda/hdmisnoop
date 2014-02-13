@@ -50,6 +50,7 @@ INC_DIR += .
 INC_DIR += sys/inc
 INC_DIR += platform/inc
 INC_DIR += cec/inc
+INC_DIR += usb/inc
 
 # Output dir
 OUT_DIR = out

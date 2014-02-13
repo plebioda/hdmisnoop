@@ -20,3 +20,5 @@
 # Output directory
 out
 
+# Vim swap files
+*.swp
