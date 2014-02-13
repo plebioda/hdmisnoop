@@ -508,7 +508,7 @@ typedef union
 	struct
 	{
 		uint32_t MPSIZ		:11;	/* Bits 10:0   : Maximum packet size */
-		uint32_t reserved_14_11	: 4;	/* Bits 14:2   : reserved */
+		uint32_t reserved_14_2	: 4;	/* Bits 14:2   : reserved */
 		uint32_t USBAEP		: 1;	/* Bit 15      : USB active endpoint */
 		uint32_t DPID		: 1;	/* Bit 16      : Endpoint data PID [for interrupt/bulk]*/
 						/*               Even/Odd frame number [for isochronous]*/

@@ -6,6 +6,7 @@
 #include <clock.h>
 #include <stm32_usb_fs.h>
 #include <usb.h>
+#include <usb_dbg.h>
 
 #define err(fmt, args...)	printf("error: " fmt, ## args)
 #define dbg(fmt, args...)	printf("debug: " fmt, ## args)
@@ -243,6 +244,7 @@ int usb_init_core(void)
 	grstctl.reg = 0;
 	grstctl.b.TXFFLSH = 1;
 	grstctl.b.TXFNUM = 0x10;
+	USB_OTG_FS_CGCSR->GRSTCTL = grstctl;
 	counter = 0;
 	do
 	{
@@ -259,6 +261,7 @@ int usb_init_core(void)
 	/* Flush RX FIFO */
 	grstctl.reg = 0;
 	grstctl.b.RXFFLSH = 1;
+	USB_OTG_FS_CGCSR->GRSTCTL = grstctl;
 	counter = 0;
 	do
 	{
@@ -278,12 +281,27 @@ int usb_init_core(void)
 	USB_OTG_FS_DMCSR->DAINT.reg = 0xffffffff;
 	USB_OTG_FS_DMCSR->DAINTMSK.reg = 0;
 
+	for(int i=0;i<USB_OTG_FS_DEVICE_MODE_FIFO_NUM; i++)
+	{
+		USB_OTG_FS_DIEPCTL(i)->reg = 0;
+		USB_OTG_FS_DIEPSIZ(i)->reg = 0;
+		USB_OTG_FS_DIEPINT(i)->reg = 0xFF;
+	}
+	
+	for(int i=0;i<USB_OTG_FS_DEVICE_MODE_FIFO_NUM; i++)
+	{
+		USB_OTG_FS_DOEPCTL(i)->reg = 0;
+		USB_OTG_FS_DOEPSIZ(i)->reg = 0;
+		USB_OTG_FS_DOEPINT(i)->reg = 0xFF;
+	}
+
 	USB_OTG_FS_GINTMSK_T intmsk;
 	intmsk.reg = 0;
 	USB_OTG_FS_CGCSR->GINTMSK.reg = 0;
-	USB_OTG_FS_CGCSR->GOTGINT.reg = 0xffffffff;
+	//USB_OTG_FS_CGCSR->GOTGINT.reg = 0xffffffff;
 	USB_OTG_FS_CGCSR->GINTSTS.reg = 0xbfffffff;
 
+	USB_OTG_FS_CGCSR->GINTMSK.b.RXFLVLM = 1;
 	USB_OTG_FS_CGCSR->GINTMSK.b.WUIM = 1;
 	USB_OTG_FS_CGCSR->GINTMSK.b.USBSUSPM = 1;
 	USB_OTG_FS_CGCSR->GINTMSK.b.USBRST = 1;
@@ -319,6 +337,12 @@ struct usb_device
 	{
 		USB_OTG_FS_CGCSR_T * CGCSR;
 		USB_OTG_FS_DMCSR_T * DMCSR;
+		USB_OTG_FS_DIEPCTLx_T * DIEPCTL[USB_OTG_FS_DEVICE_MODE_FIFO_NUM];
+		USB_OTG_FS_DIEPINTx_T * DIEPINT[USB_OTG_FS_DEVICE_MODE_FIFO_NUM];
+		USB_OTG_FS_DIEPSIZx_T * DIEPSIZ[USB_OTG_FS_DEVICE_MODE_FIFO_NUM];
+		USB_OTG_FS_DOEPCTLx_T * DOEPCTL[USB_OTG_FS_DEVICE_MODE_FIFO_NUM];
+		USB_OTG_FS_DOEPINTx_T * DOEPINT[USB_OTG_FS_DEVICE_MODE_FIFO_NUM];
+		USB_OTG_FS_DOEPSIZx_T * DOEPSIZ[USB_OTG_FS_DEVICE_MODE_FIFO_NUM];
 		uint32_t * DFIFO[USB_OTG_FS_DEVICE_MODE_FIFO_NUM];
 	} regs;
 	struct usb_device_fops fops;
@@ -391,11 +415,18 @@ USB_OTG_FS_GINTSTS_T usb_get_core_interrupts(struct usb_device * usbd)
 void usb_dbg_print_setup_packet(struct usb_setup_packet * p)
 {
 	dbg("SETUP:\n");
-	dbg("bmRequestType.Direction : %d\n", p->bmRequestType.b.Direction);
-	dbg("bmRequestType.Type      : %d\n", p->bmRequestType.b.Type);
-	dbg("bmRequestType.Recipient : %d\n", p->bmRequestType.b.Recipient);
-	dbg("bRequest                : %d\n", p->bRequest);
-	dbg("wValue                  : %d\n", p->wValue);
+	dbg("bmRequestType.Direction : %d [%s]\n", p->bmRequestType.b.Direction, usb_request_direction_to_str(p->bmRequestType.b.Direction));
+	dbg("bmRequestType.Type      : %d [%s]\n", p->bmRequestType.b.Type, usb_request_type_to_str(p->bmRequestType.b.Type));
+	dbg("bmRequestType.Recipient : %d [%s]\n", p->bmRequestType.b.Recipient, usb_request_recipient_to_str(p->bmRequestType.b.Recipient));
+	dbg("bRequest                : %d [%s]\n", p->bRequest, usb_request_to_str(p->bRequest));
+	if(USB_REQUEST_GET_DESCRIPTOR == p->bRequest)
+	{
+		dbg("wValue                  : %d [%s(%d)]\n", p->wValue.val, usb_descriptor_type_to_str(p->wValue.desc.type), p->wValue.desc.index);
+	}
+	else
+	{
+		dbg("wValue                  : %d\n", p->wValue.val);
+	}
 	dbg("wIndex                  : %d\n", p->wIndex);
 	dbg("wLength                 : %d\n", p->wLength);
 }
@@ -451,7 +482,7 @@ uint32_t usb_dev_irq_rxflvl(struct usb_device * usbd)
 	usbd->regs.CGCSR->GINTMSK.b.RXFLVLM = 0;
 	USB_OTG_FS_GRXSTSx_T grxstsp = usbd->regs.CGCSR->GRXSTSP;
 	USB_GRXSTSP_PKTSTS_T pktsts = grxstsp.b.PKTSTS;
-	dbg("PKTSTS=%d, BCNT=%d\n", pktsts, grxstsp.b.BCNT); 
+	//dbg("PKTSTS=%d, BCNT=%d\n", pktsts, grxstsp.b.BCNT); 
 	switch(pktsts)
 	{
 		case USB_GRXSTSP_PKSTS_GLOBAL_OUT_NAK:
@@ -463,7 +494,6 @@ uint32_t usb_dev_irq_rxflvl(struct usb_device * usbd)
 		case USB_GRXSTSP_PKSTS_SETUP_COMPLETED:
 			break;
 		case USB_GRXSTSP_PKSTS_SETUP_PACKET_RECEIVED:
-			dbg("Setup packet received\n");
 			usb_read_packet(usbd, &usbd->setup_packet, sizeof(usbd->setup_packet));
 			usb_dbg_print_setup_packet(&usbd->setup_packet);
 			break;
@@ -479,6 +509,9 @@ uint32_t usb_dev_irq_sof(struct usb_device * usbd)
 	{
 		usbd->fops.sof(usbd);
 	}
+	
+	usbd->regs.CGCSR->GINTSTS.b.SOF = 1;
+
 	return 0;
 }
 
@@ -496,13 +529,15 @@ uint32_t usb_irq(struct usb_device * usbd)
 			return 0;
 		}
 		
+		if(gintsts.b.SOF)
+		{
+			usb_dev_irq_sof(usbd);
+		}
+
 		if(gintsts.b.RXFLVL)
 		{
 			usb_dev_irq_rxflvl(usbd);
 		}
-
-		usbd->regs.CGCSR->GINTSTS = gintsts;
-		
 	}
 	else
 	{

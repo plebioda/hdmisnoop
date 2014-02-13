@@ -1,6 +1,8 @@
 #ifndef _USB_H
 #define _USB_H
 
+#include <stdint.h>
+
 typedef enum
 {
 	USB_REQUEST_TYPE_STANDARD = 0,
@@ -11,23 +13,23 @@ typedef enum
 
 typedef enum
 {
-	USB_REQUEST_TYPE_RECIPIENT_DEVICE = 0,
-	USB_REQUEST_TYPE_RECIPIENT_INTERFACE = 1,
-	USB_REQUEST_TYPE_RECIPIENT_ENPOINT = 2,
-	USB_REQUEST_TYPE_RECIPIENT_OTHER = 3,
-	USB_REQUEST_TYPE_RECIPIENT_MAX
-} usb_request_type_recipient_t;
+	USB_REQUEST_RECIPIENT_DEVICE = 0,
+	USB_REQUEST_RECIPIENT_INTERFACE = 1,
+	USB_REQUEST_RECIPIENT_ENPOINT = 2,
+	USB_REQUEST_RECIPIENT_OTHER = 3,
+	USB_REQUEST_RECIPIENT_MAX
+} usb_request_recipient_t;
 
 typedef enum
 {
-	USB_REQUEST_TYPE_DIRECTION_HOST_TO_DEVICE = 0,
-	USB_REQUEST_TYPE_DIRECTION_DEVICE_TO_HOST = 1
-} usb_request_type_direction_t;
+	USB_REQUEST_DIRECTION_HOST_TO_DEVICE = 0,
+	USB_REQUEST_DIRECTION_DEVICE_TO_HOST = 1
+} usb_request_direction_t;
 
 typedef enum
 {
 	USB_REQUEST_GET_STATUS = 0,
-	USB_REQUEST_FEATURE = 1,
+	USB_REQUEST_CLEAR_FEATURE = 1,
 	USB_REQUEST_RESERVED_2 = 2,
 	USB_REQUEST_SET_FEATURE = 3,
 	USB_REQUEST_RESERVED_4 = 4,
@@ -70,13 +72,21 @@ typedef struct usb_setup_packet
 		uint8_t val;
 		struct
 		{
-			usb_request_type_recipient_t Recipient		: 5;
-			usb_request_type_t Type				: 2;
-			usb_request_type_direction_t Direction		: 1;
+			usb_request_recipient_t Recipient	: 5;
+			usb_request_type_t Type			: 2;
+			usb_request_direction_t Direction	: 1;
 		} b;
 	} bmRequestType;
 	uint8_t bRequest;
-	uint16_t wValue;
+	union
+	{
+		uint16_t val;
+		struct
+		{
+			uint8_t index;
+			usb_descriptor_type_t type;
+		} desc;
+	}wValue;
 	uint16_t wIndex;
 	uint16_t wLength;
 } usb_setup_packet_t;
