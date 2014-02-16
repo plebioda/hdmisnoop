@@ -86,9 +86,28 @@ typedef struct usb_setup_packet
 			uint8_t index;
 			usb_descriptor_type_t type;
 		} desc;
-	}wValue;
+	} wValue;
 	uint16_t wIndex;
 	uint16_t wLength;
 } usb_setup_packet_t;
+
+
+typedef struct usb_device_descriptor
+{
+	uint8_t bLength;
+	uint8_t bDescriptorType;
+	uint8_t bcdUSB[2];
+	uint8_t bDeviceClass;
+	uint8_t bDeviceSubClass;
+	uint8_t bDeviceProtocol;
+	uint8_t bMaxPacketSize0;
+	uint16_t idVendor;
+	uint16_t idProduct;
+	uint8_t bcdDevice[2];
+	uint8_t iManufacturer;
+	uint8_t iProduct;
+	uint8_t iSerialNumber;
+	uint8_t bNumConfigurations;
+} usb_device_descriptor_t;
 
 #endif //_USB_H

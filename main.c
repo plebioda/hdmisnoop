@@ -9,7 +9,10 @@
 #include <usb_dbg.h>
 
 #define err(fmt, args...)	printf("error: " fmt, ## args)
-#define dbg(fmt, args...)	printf("debug: " fmt, ## args)
+#define dbg(fmt, args...)	{						\
+					up_time_t time = get_up_time();		\
+					printf("[%02d:%02d:%02d.%03d] debug: " fmt, time.hours, time.minutes, time.seconds, time.ms, ## args);		\
+				}
 #define STR(name)	#name
 #define PRINT_FIELD(n, f)	dbg("%s.%s	: %d\n", STR(n), STR(f), n.b.f)
 
@@ -311,6 +314,9 @@ int usb_init_core(void)
 	USB_OTG_FS_CGCSR->GINTMSK.b.SOFM = 1;
 	USB_OTG_FS_CGCSR->GINTMSK.b.IISOIXFRM = 1;
 	USB_OTG_FS_CGCSR->GINTMSK.b.IPXFRM = 1;
+//	USB_OTG_FS_CGCSR->GINTMSK.b.SRQIM = 1;
+//	USB_OTG_FS_CGCSR->GINTMSK.b.OTGINT = 1;
+	
 
 	/* Enable global int */
 	ahbcfg.reg = 0;
@@ -329,6 +335,7 @@ struct usb_device;
 struct usb_device_fops
 {
 	usb_ret_t (*sof)(struct usb_device * usbd);
+	usb_ret_t (*get_device_descriptor)(struct usb_device * usbd, uint8_t ** buff, uint32_t * len);
 };
 
 struct usb_device
@@ -354,6 +361,45 @@ struct usb_device usbd;
 usb_ret_t usb_cdc_sof(struct usb_device * usbd)
 {
 
+}
+
+usb_ret_t usb_cdc_get_device_descriptor(struct usb_device * usbd, uint8_t ** buff, uint32_t * len)
+{
+#define USB_CDC_MAX_PACKET_SIZE0	64	
+#define USB_CDC_VID			0x0483
+#define USB_CDC_PID			0x5740
+#define USB_CDC_STR_ID_MANUFACTURER	1
+#define USB_CDC_STR_ID_PRODUCT		2
+#define USB_CDC_STR_ID_SERIAL		3
+#define USB_CDC_NUM_CFG			1
+	/*
+	 * {0x12, 0x1, 0x0, 0x2, 0x0, 0x0, 0x0, 0x40, 0x83, 0x4, 0x40, 0x57, 0x0, 0x2, 0x1, 0x2, 0x3, 0x1}
+	 */
+	static usb_device_descriptor_t desc = 
+	{
+		.bLength 		= sizeof(usb_device_descriptor_t),
+		.bDescriptorType 	= 0x1,
+		.bcdUSB			= {0x00, 0x02},
+		.bDeviceClass 		= 0x00,
+		.bDeviceSubClass 	= 0x00,
+		.bDeviceProtocol	= 0x00,
+		.bMaxPacketSize0 	= USB_CDC_MAX_PACKET_SIZE0, 
+		.idVendor		= USB_CDC_VID,
+		.idProduct		= USB_CDC_PID,
+		.bcdDevice		= {0x00, 0x02},
+		.iManufacturer		= USB_CDC_STR_ID_MANUFACTURER,
+		.iProduct		= USB_CDC_STR_ID_PRODUCT,
+		.iSerialNumber		= USB_CDC_STR_ID_SERIAL,
+		.bNumConfigurations	= USB_CDC_NUM_CFG
+	};
+
+	if(NULL != buff && NULL != len)
+	{
+		*buff = (uint8_t*)&desc;
+		*len = sizeof(desc);
+	}
+
+	return 0;
 }
 
 int usb_init(void)
@@ -385,8 +431,16 @@ int usb_init(void)
 	for(int i=0;i<USB_OTG_FS_DEVICE_MODE_FIFO_NUM; i++)
 	{
 		usbd.regs.DFIFO[i] = USB_OTG_FS_DFIFO(i);
+		usbd.regs.DIEPCTL[i] = USB_OTG_FS_DIEPCTL(i);
+		usbd.regs.DIEPINT[i] = USB_OTG_FS_DIEPINT(i);
+		usbd.regs.DIEPSIZ[i] = USB_OTG_FS_DIEPSIZ(i);
+		usbd.regs.DOEPCTL[i] = USB_OTG_FS_DOEPCTL(i);
+		usbd.regs.DOEPINT[i] = USB_OTG_FS_DOEPINT(i);
+		usbd.regs.DOEPSIZ[i] = USB_OTG_FS_DOEPSIZ(i);
 	}
+
 	usbd.fops.sof = usb_cdc_sof;
+	usbd.fops.get_device_descriptor = usb_cdc_get_device_descriptor;
 }
 
 typedef enum
@@ -476,10 +530,32 @@ int usb_read_packet(struct usb_device * usbd, void * ptr, uint32_t len)
 	return len;
 }
 
+int usb_dev_flush_tx_fifo(struct usb_device * usbd, uint32_t n)
+{
+#define USB_DEV_FLUSH_TX_FIFO_DELAY_US		2000
+	USB_OTG_FS_GRSTCTL_T grstctl;
+	grstctl.reg = 0;
+	grstctl.b.TXFFLSH = 1;
+	grstctl.b.TXFNUM = n;
+	usbd->regs.CGCSR->GRSTCTL = grstctl;
+	int counter = 0;
+	do
+	{
+		if(counter++ > USB_DEV_FLUSH_TX_FIFO_DELAY_US)
+		{
+			return -1;
+		}
+		delay_us(1);
+	} while(usbd->regs.CGCSR->GRSTCTL.b.TXFFLSH == 1);
+	
+	return 0;
+}
+
 uint32_t usb_dev_irq_rxflvl(struct usb_device * usbd)
 {
 	/* Disable the Rx fifo non-empty interrupt */
 	usbd->regs.CGCSR->GINTMSK.b.RXFLVLM = 0;
+
 	USB_OTG_FS_GRXSTSx_T grxstsp = usbd->regs.CGCSR->GRXSTSP;
 	USB_GRXSTSP_PKTSTS_T pktsts = grxstsp.b.PKTSTS;
 	//dbg("PKTSTS=%d, BCNT=%d\n", pktsts, grxstsp.b.BCNT); 
@@ -495,11 +571,14 @@ uint32_t usb_dev_irq_rxflvl(struct usb_device * usbd)
 			break;
 		case USB_GRXSTSP_PKSTS_SETUP_PACKET_RECEIVED:
 			usb_read_packet(usbd, &usbd->setup_packet, sizeof(usbd->setup_packet));
-			usb_dbg_print_setup_packet(&usbd->setup_packet);
+			//usb_dbg_print_setup_packet(&usbd->setup_packet);
 			break;
 		default:
 			break;
 	}
+
+	/* Enable the Rx fifo non-empty interrupt */
+	usbd->regs.CGCSR->GINTMSK.b.RXFLVLM = 1;
 
 }
 
@@ -515,12 +594,214 @@ uint32_t usb_dev_irq_sof(struct usb_device * usbd)
 	return 0;
 }
 
+uint32_t usb_dev_read_all_out_ep_irq(struct usb_device * usbd)
+{
+	uint32_t oepint = 0;
+	uint32_t oepm = 0;
+
+	oepint = usbd->regs.DMCSR->DAINT.b.OEPINT;
+	oepm = usbd->regs.DMCSR->DAINTMSK.b.OEPM;
+
+	return (oepint & oepm);
+}
+
+uint32_t usb_dev_read_out_ep_irq(struct usb_device * usbd, uint32_t n)
+{
+	uint32_t doepint = 0;
+	uint32_t doepmsk = 0;
+	
+	if(n < USB_OTG_FS_DEVICE_MODE_FIFO_NUM)
+	{
+		doepint = usbd->regs.DOEPINT[n]->reg;
+		doepmsk = usbd->regs.DMCSR->DOEPMSK.reg;
+	}
+
+	return (doepint & doepmsk);
+}
+
+int usb_dev_ctl_send_data(struct usb_device * usbd, uint8_t * buff, uint32_t len)
+{
+
+}
+
+int usb_dev_request_get_descriptor(struct usb_device * usbd, struct usb_setup_packet * setup_packet)
+{
+	uint8_t * buff = NULL;
+	uint32_t len = 0;
+	switch(setup_packet->wValue.desc.type)
+	{
+		case USB_DESCRIPTOR_TYPE_DEVICE:
+			if(usbd->fops.get_device_descriptor)
+			{
+				usb_ret_t ret = usbd->fops.get_device_descriptor(usbd, &buff, &len);
+				if(ret)
+				{
+					return -1;
+				}
+			}
+			break;
+		case USB_DESCRIPTOR_TYPE_CONFIGURATION:
+		case USB_DESCRIPTOR_TYPE_STRING:
+		case USB_DESCRIPTOR_TYPE_INTERFACE:
+		case USB_DESCRIPTOR_TYPE_ENDPOINT:
+		case USB_DESCRIPTOR_TYPE_DEVICE_QUALIFIER:
+		case USB_DESCRIPTOR_TYPE_OTHER_SPEED_CONFIGURATION:
+		case USB_DESCRIPTOR_TYPE_INTERFACE_POWER:
+		default:
+			return -1;
+	}
+	if(NULL != buff && len>0)
+	{
+		printf("{");
+		for(uint32_t i=0;i<len-1;i++)
+		{
+			printf("0x%x, ", buff[i]);
+		}
+		printf("0x%x}\n", buff[len-1]);
+		return usb_dev_ctl_send_data(usbd, buff, len);
+	}
+	else
+	{
+		return -1;
+	}
+}
+
+int usb_dev_request_device(struct usb_device * usbd, struct usb_setup_packet * setup_packet)
+{
+	usb_request_t req = (usb_request_t)setup_packet->bRequest;
+	switch(req)
+	{
+		case USB_REQUEST_GET_STATUS:
+		case USB_REQUEST_CLEAR_FEATURE:
+		case USB_REQUEST_SET_FEATURE:
+		case USB_REQUEST_SET_ADDRESS:
+			return -1;
+		case USB_REQUEST_GET_DESCRIPTOR:
+			return usb_dev_request_get_descriptor(usbd, setup_packet);
+		case USB_REQUEST_SET_DESCRIPTOR:
+		case USB_REQUEST_GET_CONFIGURATION:
+		case USB_REQUEST_SET_CONFIGURATION:
+		case USB_REQUEST_GET_INTERFACE:
+		case USB_REQUEST_SET_INTERFACE:
+		case USB_REQUEST_SYNCH_FRAME:
+		case USB_REQUEST_RESERVED_4:
+		case USB_REQUEST_RESERVED_2:
+		default:
+			return -1;
+	}
+}
+
+int usb_dev_setup_done_irq(struct usb_device * usbd)
+{
+	switch(usbd->setup_packet.bmRequestType.b.Recipient)
+	{
+		case USB_REQUEST_RECIPIENT_DEVICE:
+			return usb_dev_request_device(usbd, &usbd->setup_packet);
+		case USB_REQUEST_RECIPIENT_INTERFACE:
+			break;
+		case USB_REQUEST_RECIPIENT_ENPOINT:
+			break;
+		case USB_REQUEST_RECIPIENT_OTHER:
+			break;
+		default:
+			return -1;	
+	}
+}
+
+uint32_t usb_dev_out_ep_irq_process(struct usb_device * usbd, uint32_t n, USB_OTG_FS_DOEPINTx_T doepint)
+{
+	if(doepint.b.STUP)
+	{
+		usb_dev_setup_done_irq(usbd);
+		usbd->regs.DOEPINT[n]->b.STUP = 1;
+	}
+}
+
+uint32_t usb_dev_irq_usbrst(struct usb_device * usbd)
+{
+	/* Clear the Remote Wake-up signaling*/
+	usbd->regs.DMCSR->DCTL.b.RWUSIG = 0;
+	
+	usb_dev_flush_tx_fifo(usbd, 0);
+
+	for(int i = 0 ; i < USB_OTG_FS_DEVICE_MODE_FIFO_NUM; i++)
+	{
+		usbd->regs.DIEPINT[i]->reg = 0xFF;
+		usbd->regs.DOEPINT[i]->reg = 0xFF;
+	}
+
+	usbd->regs.DMCSR->DAINTMSK.reg = 0xFFFFFFFF;
+	usbd->regs.DMCSR->DAINTMSK.b.IEPM = 1;
+	usbd->regs.DMCSR->DAINTMSK.b.OEPM = 1;
+	
+	USB_OTG_FS_DOEPMSK_T doepmsk;
+	
+	doepmsk.reg = 0;
+	doepmsk.b.XFRCM = 1;
+	doepmsk.b.EPDM = 1;
+	doepmsk.b.STUPM = 1;
+
+	usbd->regs.DMCSR->DOEPMSK = doepmsk;
+	
+	USB_OTG_FS_DIEPMSK_T diepmsk;
+
+	diepmsk.reg = 0;
+	diepmsk.b.XFRCM = 1;
+	diepmsk.b.TOM = 1;
+	diepmsk.b.EPDM = 1;
+
+	usbd->regs.DMCSR->DIEPMSK = diepmsk;
+	
+	/* Reset device address*/
+	usbd->regs.DMCSR->DCFG.b.DAD = 0;
+
+#define USB_DEV_DOEPSIZ0_XFRXIZ		(8*3)
+#define USB_DEV_DOEPSIZ0_PKTCNT		1
+#define USB_DEV_DOEPSIZ0_STUPCNT	3
+
+	USB_OTG_FS_DOEPSIZ0_T doepsiz0;
+	doepsiz0.reg = 0;
+	doepsiz0.b.XFRSIZ = USB_DEV_DOEPSIZ0_XFRXIZ;
+	doepsiz0.b.PKTCNT = USB_DEV_DOEPSIZ0_PKTCNT;
+	doepsiz0.b.STUPCNT = USB_DEV_DOEPSIZ0_STUPCNT;
+	usbd->regs.DOEPSIZ[0]->reg = doepsiz0.reg;
+
+	usbd->regs.CGCSR->GINTSTS.b.USBRST = 1;
+
+	return 0;
+}
+
+uint32_t usb_dev_irq_oepint(struct usb_device * usbd)
+{
+	uint32_t ep_int = 0;
+
+	ep_int = usb_dev_read_all_out_ep_irq(usbd);
+	
+	/* Process all endpoint interrupts */
+	uint32_t epnum = 0;
+	while(ep_int)
+	{
+		if(ep_int&0x1)
+		{
+			USB_OTG_FS_DOEPINTx_T doepint;
+		        doepint.reg = usb_dev_read_out_ep_irq(usbd, epnum);
+			if(doepint.reg)
+			{
+				usb_dev_out_ep_irq_process(usbd, epnum, doepint);
+			}
+		}
+		epnum++;
+		ep_int >>= 1;
+	}
+
+	return 0;
+}
+
 uint32_t usb_irq(struct usb_device * usbd)
 {
 	if(USB_MODE_DEVICE == usb_get_mode(usbd))
 	{
 		USB_OTG_FS_GINTSTS_T gintsts = usb_get_core_interrupts(usbd);
-		//usb_dbg_print_gintsts(gintsts);
 		//dbg("GINTSTS	: 0x%08x\n", gintsts.reg);
 		
 		if(!gintsts.reg)
@@ -529,6 +810,16 @@ uint32_t usb_irq(struct usb_device * usbd)
 			return 0;
 		}
 		
+		if(0)
+		{
+			USB_OTG_FS_GINTSTS_T tmp = gintsts;
+			tmp.b.SOF = 0;
+			if(tmp.reg)
+			{
+				usb_dbg_print_gintsts(gintsts);
+			}
+		}
+
 		if(gintsts.b.SOF)
 		{
 			usb_dev_irq_sof(usbd);
@@ -536,12 +827,24 @@ uint32_t usb_irq(struct usb_device * usbd)
 
 		if(gintsts.b.RXFLVL)
 		{
+			//dbg("RXFLVL\n");
 			usb_dev_irq_rxflvl(usbd);
+		}
+		
+		if(gintsts.b.USBRST)
+		{
+			//dbg("USBRST\n");
+			usb_dev_irq_usbrst(usbd);
+		}
+
+		if(gintsts.b.OEPINT)
+		{
+			usb_dev_irq_oepint(usbd);
 		}
 	}
 	else
 	{
-		err("USB in host mode\n");
+		//err("USB in host mode\n");
 	}
 }
 
@@ -560,12 +863,12 @@ void init(void)
 int main(void)
 {
 	init();
-	printf("sizeof(usb_setup_packet_t) = %d\n", sizeof(usb_setup_packet_t));
 	printf("HDMI Snoop\n");
 	memset(&cec_message_buffer, 0, sizeof(cec_message_buffer));
 	int i=0;
 	for(;;)
 	{
+#if 0
 		while(cec_message_buffer.size > 0)
 		{
 			struct cec_rx_message * msg = &cec_message_buffer.items[cec_message_buffer.first].message;
@@ -575,6 +878,7 @@ int main(void)
 			cec_message_buffer.first = (cec_message_buffer.first+1)%CEC_BUFFER_SIZE;
 			cec_message_buffer.size--;
 		}
+#endif
 	}
 	return 0;
 }
