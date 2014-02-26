@@ -3,6 +3,53 @@
 
 #include <stdint.h>
 
+typedef uint32_t usb_ret_t;
+
+typedef enum 
+{
+	USB_ENDPOINT_TYPE_CONTROL = 0,
+	USB_ENDPOINT_TYPE_ISOCHRONOUS,
+	USB_ENDPOINT_TYPE_BULK,
+	USB_ENDPOINT_TYPE_INTERRUPT,
+	
+	USB_ENDPOINT_TYPE_MAX
+} usb_endpoint_type_t;
+
+typedef enum
+{
+	USB_ENDPOINT_DIR_IN,
+	USB_ENDPOINT_DIR_OUT,
+
+	USB_ENDPOINT_DIR_MAX
+} usb_endpoint_dir_t;
+
+typedef enum
+{
+	USB_SPEED_LOW,
+	USB_SPEED_FULL,
+	USB_SPEED_HIGH,
+
+	USB_SPEED_MAX
+} usb_speed_t;
+
+typedef enum
+{
+	USB_MODE_DEVICE,
+	USB_MODE_HOST,
+
+	USB_MODE_MAX
+} usb_mode_t;
+
+typedef enum
+{
+	USB_DEVICE_STATE_ATTACHED,
+	USB_DEVICE_STATE_POWERED,
+	USB_DEVICE_STATE_SUSPENDED,
+	USB_DEVICE_STATE_DEFAULT,
+	USB_DEVICE_STATE_ADDRESS,
+	USB_DEVICE_STATE_CONFIGURED
+} usb_device_state_t;
+
 typedef enum
 {
 	USB_REQUEST_TYPE_STANDARD = 0,

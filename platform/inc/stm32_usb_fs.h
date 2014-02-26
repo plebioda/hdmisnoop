@@ -480,6 +480,11 @@ typedef struct
 	__IO USB_OTG_FS_DIEPEMPMSK_T	DIEPEMPMSK;		/* 0x834 : OTG FS device IN endpoint FIFO empty interrupt mask register */
 } USB_OTG_FS_DMCSR_T;
 
+#define USB_DIEPCTL_MPSIZ_64	0
+#define USB_DIEPCTL_MPSIZ_32	1
+#define USB_DIEPCTL_MPSIZ_16	2
+#define USB_DIEPCTL_MPSIZ_8	3
+
 typedef union
 {
 	uint32_t reg;
@@ -688,9 +693,5 @@ typedef union
 		uint32_t reserved_31_5	:27;	/* Bits 31:5   : reserved */
 	} b;
 } USB_OTG_FS_PCGCCTL_T;
-
-
-int usb_init_io(void);
-
 
 #endif //_STM32_USB_FS_H

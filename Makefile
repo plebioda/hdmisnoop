@@ -78,9 +78,11 @@ CSRC += sys/syscalls.c
 CSRC += sys/clock.c
 CSRC += platform/stm32f4xx.c
 CSRC += platform/stm32f4xx_it.c
+CSRC += platform/stm32f4xx_usb_dev.c
 CSRC += cec/cec.c
 CSRC += cec/cec_str.c
 CSRC += usb/usb_str.c
+CSRC += usb/usb_dev.c
 
 # Assembler source
 ASRC += platform/stm32f4xx_startup.s
