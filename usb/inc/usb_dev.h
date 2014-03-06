@@ -25,6 +25,7 @@ struct usb_device
 	struct usb_device_fops fops;
 	struct usb_setup_packet setup_packet;
 	usb_device_state_t state;
+	usb_address_t address;
 	usb_dev_platform_handle_t platform;
 	struct usb_dev_platform_callbacks platform_callbacks;
 };

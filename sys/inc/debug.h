@@ -15,6 +15,9 @@
 
 #define _dbg(fmt, args...)	printf(fmt, ## args)
 
+#define TODO(fmt, args...)	dbg("** TODO at [%s:%d]\n", __FILE__, __LINE__);	\
+				dbg("********** " fmt, ## args)
+
 #define STR(name)	#name
 #define PRINT_FIELD(n, f)	dbg("%s.%s	: %d\n", STR(n), STR(f), n.b.f)
 

@@ -3,6 +3,7 @@
 
 #include <usb.h>
 
+void usb_dbg_print_setup_packet(struct usb_setup_packet * p);
 const char * usb_request_type_to_str(usb_request_type_t type);
 const char * usb_request_recipient_to_str(usb_request_recipient_t rec);
 const char * usb_request_direction_to_str(usb_request_direction_t dir);

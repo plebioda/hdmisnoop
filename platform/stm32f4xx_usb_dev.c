@@ -528,6 +528,17 @@ int usb_dev_platform_irq_enumdne(struct usb_dev_platform * usbd)
 	return ret;
 }
 
+int usb_dev_platform_set_address(usb_dev_platform_handle_t handle, usb_address_t addr)
+{
+	USB_OTG_FS_DCFG_T dcfg = handle->regs.DMCSR->DCFG;
+	
+	dcfg.b.DAD = addr;
+	
+	handle->regs.DMCSR->DCFG = dcfg;
+
+	return 0;
+}
+
 uint32_t usb_irq(struct usb_dev_platform * usbd)
 {
 	static int _iepint = 0;
@@ -582,9 +593,6 @@ void OTG_FS_IRQHandler(void)
 {
 	usb_irq(&usb_dev_platform);
 }
-
-
-
 
 int usb_init_io()
 {

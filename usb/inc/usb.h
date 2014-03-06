@@ -112,6 +112,9 @@ typedef enum
 	USB_FEATURE_SELECTOR_MAX
 } usb_feature_selector_t;
 
+typedef uint16_t usb_address_t;
+#define USB_ADDRESS_MASK	0x7f
+
 typedef struct usb_setup_packet
 {
 	union
@@ -133,6 +136,7 @@ typedef struct usb_setup_packet
 			uint8_t index;
 			usb_descriptor_type_t type;
 		} desc;
+		usb_address_t address;
 	} wValue;
 	uint16_t wIndex;
 	uint16_t wLength;

@@ -1,7 +1,9 @@
-#include <usb_dev.h>
-#include <usb_dev_platform.h>
 #include <stdlib.h>
 #include <string.h>
+#include <usb_dev.h>
+#include <usb_dev_platform.h>
+#include <debug.h>
+#include <usb_dbg.h>
 
 int usb_dev_ep_tx(struct usb_device * usbd, uint8_t n, uint8_t * buff, uint32_t len)
 {
@@ -19,16 +21,75 @@ int usb_dev_ep_tx(struct usb_device * usbd, uint8_t n, uint8_t * buff, uint32_t 
 	}
 }
 
+int usb_dev_ep_rx(struct usb_device * usbd)
+{
+	TODO("Implement me\n");
+}
+
 int usb_dev_ctl_send_data(struct usb_device * usbd, uint8_t * buff, uint32_t len)
 {
 	return usb_dev_ep_tx(usbd, 0, buff, len);
+}
+
+int usb_dev_ctl_req_error(struct usb_device * usbd, struct usb_setup_packet * req)
+{
+	TODO("Implement me\n");
+}
+
+int usb_dev_ctl_send_status(struct usb_device * usbd)
+{
+	usb_dev_ep_tx(usbd, 0, NULL, 0);
+	
+	usb_dev_ep_rx(usbd);
+
+	return 0;
+}
+
+int usb_dev_request_set_address(struct usb_device * usbd, struct usb_setup_packet * setup_packet)
+{
+	if(USB_REQUEST_DIRECTION_HOST_TO_DEVICE != setup_packet->bmRequestType.b.Direction)
+	{
+		dbg("Invalid direction of SET_ADDRESS\n");
+		return -1;
+	}
+
+	if(setup_packet->wIndex || setup_packet->wLength || USB_DEVICE_STATE_CONFIGURED == usbd->state)
+	{
+		dbg("Invalid data of SET_ADDRESS\n");
+		usb_dev_ctl_req_error(usbd, setup_packet);
+		return -1;
+	}
+
+	usb_address_t addr = (usb_address_t)(setup_packet->wValue.address&USB_ADDRESS_MASK);
+	
+	dbg("addr = %d\n", addr);
+
+	if(addr && !usb_dev_platform_set_address(usbd->platform, addr))
+	{
+		usbd->address = addr;
+		usbd->state = USB_DEVICE_STATE_ADDRESS;
+		dbg("USB Device Address: %d\n", addr);
+		return usb_dev_ctl_send_status(usbd);
+	}
+	else
+	{
+		usbd->address = 0;
+		usbd->state = USB_DEVICE_STATE_DEFAULT;
+
+		return -1;
+	}
 }
 
 int usb_dev_request_get_descriptor(struct usb_device * usbd, struct usb_setup_packet * setup_packet)
 {
 	uint8_t * buff = NULL;
 	uint32_t len = 0;
-	//dbg("Desc.Type=%s\n", usb_descriptor_type_to_str(setup_packet->wValue.desc.type));
+	
+	if(USB_REQUEST_DIRECTION_DEVICE_TO_HOST != setup_packet->bmRequestType.b.Direction)
+	{
+		return -1;
+	}
+	
 	switch(setup_packet->wValue.desc.type)
 	{
 		case USB_DESCRIPTOR_TYPE_DEVICE:
@@ -39,7 +100,7 @@ int usb_dev_request_get_descriptor(struct usb_device * usbd, struct usb_setup_pa
 				{
 					return -1;
 				}
-				//if(setup_packet->wLength == 64 && USB_DEVICE_STATE_DEFAULT == usbd->state)
+				if(setup_packet->wLength == 64 && USB_DEVICE_STATE_DEFAULT == usbd->state)
 				{
 					len = 8;
 				}
@@ -69,14 +130,14 @@ int usb_dev_request_get_descriptor(struct usb_device * usbd, struct usb_setup_pa
 int usb_dev_request_device(struct usb_device * usbd, struct usb_setup_packet * setup_packet)
 {
 	usb_request_t req = (usb_request_t)setup_packet->bRequest;
-	//dbg("Req=%s\n", usb_request_to_str(req));
 	switch(req)
 	{
 		case USB_REQUEST_GET_STATUS:
 		case USB_REQUEST_CLEAR_FEATURE:
 		case USB_REQUEST_SET_FEATURE:
-		case USB_REQUEST_SET_ADDRESS:
 			return -1;
+		case USB_REQUEST_SET_ADDRESS:
+			return usb_dev_request_set_address(usbd, setup_packet);
 		case USB_REQUEST_GET_DESCRIPTOR:
 			return usb_dev_request_get_descriptor(usbd, setup_packet);
 		case USB_REQUEST_SET_DESCRIPTOR:
@@ -94,18 +155,26 @@ int usb_dev_request_device(struct usb_device * usbd, struct usb_setup_packet * s
 
 int usb_dev_setup_done_irq(struct usb_device * usbd, struct usb_setup_packet * setup_packet)
 {
-	switch(setup_packet->bmRequestType.b.Recipient)
+	usb_dbg_print_setup_packet(setup_packet);
+	if(USB_REQUEST_TYPE_STANDARD == setup_packet->bmRequestType.b.Type)
 	{
-		case USB_REQUEST_RECIPIENT_DEVICE:
-			return usb_dev_request_device(usbd, setup_packet);
-		case USB_REQUEST_RECIPIENT_INTERFACE:
-			break;
-		case USB_REQUEST_RECIPIENT_ENPOINT:
-			break;
-		case USB_REQUEST_RECIPIENT_OTHER:
-			break;
-		default:
-			return -1;	
+		switch(setup_packet->bmRequestType.b.Recipient)
+		{
+			case USB_REQUEST_RECIPIENT_DEVICE:
+				return usb_dev_request_device(usbd, setup_packet);
+			case USB_REQUEST_RECIPIENT_INTERFACE:
+				break;
+			case USB_REQUEST_RECIPIENT_ENPOINT:
+				break;
+			case USB_REQUEST_RECIPIENT_OTHER:
+				break;
+			default:
+				return -1;	
+		}
+	}
+	else
+	{
+		return -1;
 	}
 }
 
