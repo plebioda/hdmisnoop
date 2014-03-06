@@ -37,12 +37,12 @@ int usb_dev_platform_write_packet(struct usb_dev_platform * usbd, uint32_t n, ui
 	__IO uint32_t * fifo = (uint32_t*)usbd->regs.DFIFO[n];
 	uint32_t * buff32 = (uint32_t*)buff;
 #if DEBUG_CONFIG_USB_DEV_WRITE_PACKET
-		printf("%d: {", n);
+		dbg("%d: {", n);
 		for(uint32_t i=0;i<len-1;i++)
 		{
-			printf("0x%x, ", buff[i]);
+			_dbg("0x%x, ", buff[i]);
 		}
-		printf("0x%x}\n", buff[len-1]);
+		_dbg("0x%x}\n", buff[len-1]);
 #endif
 	uint32_t len32 = (len + 3) / 4;
 	for(uint32_t i = 0 ; i < len32 ; i++)
@@ -110,10 +110,21 @@ int usb_init_irq(void)
 	return 0;
 }
 
-uint8_t usb_endpoint_type_to_reg(usb_endpoint_type_t type)
+uint8_t usb_dev_platform_ep_type_to_reg(usb_endpoint_type_t type)
 {
-	/*TODO : switch statement */
-	return (uint8_t)type;
+	switch(type)
+	{
+		case USB_ENDPOINT_TYPE_CONTROL:
+			return USB_DEPCTL_EPTYP_CONTROL;
+		case USB_ENDPOINT_TYPE_ISOCHRONOUS:
+			return USB_DEPCTL_EPTYP_ISOCHRONOUS;
+		case USB_ENDPOINT_TYPE_BULK:
+			return USB_DEPCTL_EPTYP_BULK;
+		case USB_ENDPOINT_TYPE_INTERRUPT:
+			return USB_DEPCTL_EPTYP_INTERRUPT;
+		default:
+			return USB_DEPCTL_EPTYP_CONTROL;
+	}
 }
 
 usb_mode_t usb_dev_platform_get_mode(struct usb_dev_platform * usbd)
@@ -321,7 +332,7 @@ int usb_dev_platform_ep_activate(struct usb_dev_platform * usbd, struct usb_devi
 		if(!diepctl.b.USBAEP)
 		{
 			diepctl.b.MPSIZ = ep->mps;
-			diepctl.b.EPTYP = usb_endpoint_type_to_reg(ep->type);
+			diepctl.b.EPTYP = usb_dev_platform_ep_type_to_reg(ep->type);
 			diepctl.b.TXFNUM = ep->id;
 			diepctl.b.SD0PID = 1;
 			diepctl.b.USBAEP = 1;
@@ -340,7 +351,7 @@ int usb_dev_platform_ep_activate(struct usb_dev_platform * usbd, struct usb_devi
 		if(!doepctl.b.USBAEP)
 		{
 			doepctl.b.MPSIZ = ep->mps;
-			doepctl.b.EPTYP = usb_endpoint_type_to_reg(ep->type);
+			doepctl.b.EPTYP = usb_dev_platform_ep_type_to_reg(ep->type);
 			doepctl.b.SD0PID = 1;
 			doepctl.b.USBAEP = 1;
 
@@ -391,7 +402,6 @@ uint32_t usb_dev_platform_irq_usbrst(struct usb_dev_platform * usbd)
 	diepmsk.b.XFRCM = 1;
 	diepmsk.b.TOM = 1;
 	diepmsk.b.EPDM = 1;
-//	diepmsk.b.ITTXFEMSK = 1;
 
 	usbd->regs.DMCSR->DIEPMSK = diepmsk;
 	
@@ -408,8 +418,6 @@ uint32_t usb_dev_platform_irq_usbrst(struct usb_dev_platform * usbd)
 	doepsiz0.b.PKTCNT = USB_DEV_DOEPSIZ0_PKTCNT;
 	doepsiz0.b.STUPCNT = USB_DEV_DOEPSIZ0_STUPCNT;
 	usbd->regs.DOEPSIZ[0]->reg = doepsiz0.reg;
-	dbg("DOEPSIZ0 = 0x%08x\n", doepsiz0.reg);
-
 
 	USB_OTG_FS_GINTSTS_T gintsts;
 	gintsts.reg = 0;
@@ -417,8 +425,6 @@ uint32_t usb_dev_platform_irq_usbrst(struct usb_dev_platform * usbd)
 	usbd->regs.CGCSR->GINTSTS = gintsts;
 	
 	USB_DEV_PLATFORM_CALLBACK(usbd, reset);
-	
-	dbg("0x%08x:DOEPSIZ0 = 0x%08x\n", usbd->regs.DOEPSIZ[0], usbd->regs.DOEPSIZ[0]->reg);
 
 	return 0;
 }
@@ -437,10 +443,6 @@ uint32_t usb_dev_platform_irq_iepint(struct usb_dev_platform * usbd)
 		{
 			USB_OTG_FS_DIEPINTx_T diepint;
 			diepint.reg = usb_dev_platform_read_in_ep_irq(usbd, epnum);
-			if(diepint.reg!= 0x80)
-			{
-			dbg("diepint[%d]=0x%x\n", epnum, diepint.reg);
-			}
 			if(diepint.reg)
 			{
 				usb_dev_platform_in_ep_irq_process(usbd, epnum, diepint);
@@ -466,7 +468,6 @@ uint32_t usb_dev_platform_irq_oepint(struct usb_dev_platform * usbd)
 		{
 			USB_OTG_FS_DOEPINTx_T doepint;
 		        doepint.reg = usb_dev_platform_read_out_ep_irq(usbd, epnum);
-			dbg("doepint[%d]=0x%x\n", epnum, doepint.reg);
 			if(doepint.reg)
 			{
 				usb_dev_platform_out_ep_irq_process(usbd, epnum, doepint);
@@ -582,53 +583,7 @@ void OTG_FS_IRQHandler(void)
 	usb_irq(&usb_dev_platform);
 }
 
-void usb_dbg_print_setup_packet(struct usb_setup_packet * p)
-{
-	dbg("SETUP:\n");
-	dbg("bmRequestType.Direction : %d [%s]\n", p->bmRequestType.b.Direction, usb_request_direction_to_str(p->bmRequestType.b.Direction));
-	dbg("bmRequestType.Type      : %d [%s]\n", p->bmRequestType.b.Type, usb_request_type_to_str(p->bmRequestType.b.Type));
-	dbg("bmRequestType.Recipient : %d [%s]\n", p->bmRequestType.b.Recipient, usb_request_recipient_to_str(p->bmRequestType.b.Recipient));
-	dbg("bRequest                : %d [%s]\n", p->bRequest, usb_request_to_str(p->bRequest));
-	if(USB_REQUEST_GET_DESCRIPTOR == p->bRequest)
-	{
-		dbg("wValue                  : %d [%s(%d)]\n", p->wValue.val, usb_descriptor_type_to_str(p->wValue.desc.type), p->wValue.desc.index);
-	}
-	else
-	{
-		dbg("wValue                  : %d\n", p->wValue.val);
-	}
-	dbg("wIndex                  : %d\n", p->wIndex);
-	dbg("wLength                 : %d\n", p->wLength);
-}
 
-void usb_dbg_print_gintsts(USB_OTG_FS_GINTSTS_T GINTSTS)
-{
-	PRINT_FIELD(GINTSTS, CMOD);
-	PRINT_FIELD(GINTSTS, MMIS);
-	PRINT_FIELD(GINTSTS, OTGINT);
-	PRINT_FIELD(GINTSTS, SOF);
-	PRINT_FIELD(GINTSTS, RXFLVL);
-	PRINT_FIELD(GINTSTS, NPTXFE);
-	PRINT_FIELD(GINTSTS, GINAKEFF);
-	PRINT_FIELD(GINTSTS, GONAKEFF);
-	PRINT_FIELD(GINTSTS, ESUSP);
-	PRINT_FIELD(GINTSTS, USBSUSP);
-	PRINT_FIELD(GINTSTS, USBRST);
-	PRINT_FIELD(GINTSTS, ENUMDNE);
-	PRINT_FIELD(GINTSTS, ISOODRP);
-	PRINT_FIELD(GINTSTS, EOPF);
-	PRINT_FIELD(GINTSTS, IEPINT);
-	PRINT_FIELD(GINTSTS, OEPINT);
-	PRINT_FIELD(GINTSTS, IISOIXFR);
-	PRINT_FIELD(GINTSTS, IPXFR);
-	PRINT_FIELD(GINTSTS, HPRTINT);
-	PRINT_FIELD(GINTSTS, HCINT);
-	PRINT_FIELD(GINTSTS, PTXFE);
-	PRINT_FIELD(GINTSTS, CIDSCHG);
-	PRINT_FIELD(GINTSTS, DISCINT);
-	PRINT_FIELD(GINTSTS, SRQINT);
-	PRINT_FIELD(GINTSTS, WKUPINT);
-}
 
 
 int usb_init_io()
@@ -736,7 +691,7 @@ int usb_init_core()
 	/*
 	 * Core Init
 	 */
-	printf("Core init...\n");
+	dbg("Core init...\n");
 	ahbcfg.reg = 0;
 	usbcfg.reg = 0;
 	gccfg.reg = 0;
@@ -759,7 +714,7 @@ int usb_init_core()
 		delay_us(100);
 		if(counter++ > 20000) 
 		{
-			printf("AHBIDL delay\n");
+			dbg("AHBIDL delay\n");
 			return -1;
 		}
 	} while(USB_OTG_FS_CGCSR->GRSTCTL.b.AHBIDL == 0);
@@ -774,7 +729,7 @@ int usb_init_core()
 		delay_us(100);
 		if(counter++ > 20000) 
 		{
-			printf("CSRST delay\n");
+			dbg("CSRST delay\n");
 			return -1;
 		}
 	} while(USB_OTG_FS_CGCSR->GRSTCTL.b.CSRST == 1);
@@ -859,7 +814,7 @@ int usb_init_core()
 		delay_us(100);
 		if(counter++ > 20000) 
 		{
-			printf("TX FIFO flush delay\n");
+			dbg("TX FIFO flush delay\n");
 			return -1;
 		}
 
@@ -876,7 +831,7 @@ int usb_init_core()
 		delay_us(100);
 		if(counter++ > 20000) 
 		{
-			printf("RX FIFO flush delay\n");
+			dbg("RX FIFO flush delay\n");
 			return -1;
 		}
 
@@ -938,7 +893,7 @@ int usb_init_core()
 	ahbcfg.b.GINTMSK = 1;
 	USB_OTG_FS_CGCSR->GAHBCFG = ahbcfg;
 
-	printf("Core init...done\n");
+	dbg("Core init...done\n");
 
 	return 0;
 }

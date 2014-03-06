@@ -1,4 +1,24 @@
 #include <usb_dbg.h>
+#include <debug.h>
+
+void usb_dbg_print_setup_packet(struct usb_setup_packet * p)
+{
+	dbg("SETUP:\n");
+	dbg("bmRequestType.Direction : %d [%s]\n", p->bmRequestType.b.Direction, usb_request_direction_to_str(p->bmRequestType.b.Direction));
+	dbg("bmRequestType.Type      : %d [%s]\n", p->bmRequestType.b.Type, usb_request_type_to_str(p->bmRequestType.b.Type));
+	dbg("bmRequestType.Recipient : %d [%s]\n", p->bmRequestType.b.Recipient, usb_request_recipient_to_str(p->bmRequestType.b.Recipient));
+	dbg("bRequest                : %d [%s]\n", p->bRequest, usb_request_to_str(p->bRequest));
+	if(USB_REQUEST_GET_DESCRIPTOR == p->bRequest)
+	{
+		dbg("wValue                  : %d [%s(%d)]\n", p->wValue.val, usb_descriptor_type_to_str(p->wValue.desc.type), p->wValue.desc.index);
+	}
+	else
+	{
+		dbg("wValue                  : %d\n", p->wValue.val);
+	}
+	dbg("wIndex                  : %d\n", p->wIndex);
+	dbg("wLength                 : %d\n", p->wLength);
+}
 
 const char * usb_request_type_to_str(usb_request_type_t type)
 {

@@ -13,6 +13,8 @@
 #define dbg(fmt, args...)	printf(fmt, ## args)
 #endif
 
+#define _dbg(fmt, args...)	printf(fmt, ## args)
+
 #define STR(name)	#name
 #define PRINT_FIELD(n, f)	dbg("%s.%s	: %d\n", STR(n), STR(f), n.b.f)
 

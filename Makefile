@@ -82,8 +82,8 @@ CSRC += platform/stm32f4xx_usb_dev.c
 CSRC += platform/stm32f4xx_usb_dbg.c
 CSRC += cec/cec.c
 CSRC += cec/cec_str.c
-CSRC += usb/usb_str.c
 CSRC += usb/usb_dev.c
+CSRC += usb/usb_dbg.c
 
 # Assembler source
 ASRC += platform/stm32f4xx_startup.s

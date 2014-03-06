@@ -487,6 +487,11 @@ typedef struct
 #define USB_DIEPCTL_MPSIZ_16	2
 #define USB_DIEPCTL_MPSIZ_8	3
 
+#define USB_DEPCTL_EPTYP_CONTROL	0
+#define USB_DEPCTL_EPTYP_ISOCHRONOUS	1
+#define USB_DEPCTL_EPTYP_BULK		2
+#define USB_DEPCTL_EPTYP_INTERRUPT	3
+
 typedef union
 {
 	uint32_t reg;
