@@ -4,10 +4,10 @@
 #include <stm32f4xx.h>
 #include <cec.h>
 #include <clock.h>
-#include <stm32_usb_fs.h>
 #include <usb.h>
 #include <usb_dev.h>
 #include <usb_dbg.h>
+#include <debug.h>
 
 #define err(fmt, args...)	printf("error: " fmt, ## args)
 
@@ -80,7 +80,9 @@ struct usb_device usbd;
 void init(void)
 {
 	delay_init();
-//	cec_init();
+#if CONFIG_HAS_CEC
+	cec_init();
+#endif
 	usb_dev_init(&usbd);
 	usbd.fops.sof = usb_cdc_sof;
 	usbd.fops.get_device_descriptor = usb_cdc_get_device_descriptor;
@@ -89,12 +91,14 @@ void init(void)
 int main(void)
 {
 	init();
-	printf("HDMI Snoop\n");
+	dbg("HDMI Snoop\n");
+#if CONFIG_HAS_CEC
 	memset(&cec_message_buffer, 0, sizeof(cec_message_buffer));
+#endif
 	int i=0;
 	for(;;)
 	{
-#if 0
+#if CONFIG_HAS_CEC
 		while(cec_message_buffer.size > 0)
 		{
 			struct cec_rx_message * msg = &cec_message_buffer.items[cec_message_buffer.first].message;
@@ -111,6 +115,7 @@ int main(void)
 
 void EXTI0_IRQHandler(void)
 {
+#if CONFIG_HAS_CEC
 	static struct cec_rx_filter rxf = {
 		.receive = {
 			.device = {
@@ -139,6 +144,7 @@ void EXTI0_IRQHandler(void)
 		}
 		EXTI->PR = CEC_EXTI_PR;
 	}
+#endif
 }
 
 void print_message(cec_result_t result, up_time_t time, struct cec_rx_message * msg)

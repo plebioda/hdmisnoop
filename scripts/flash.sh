@@ -28,11 +28,11 @@ sleep 2
 
 (
 echo "reset halt"
-sleep 1
+sleep 2
 echo "flash probe 0"
-sleep 1
+sleep 2
 echo "flash write_image erase $ABS_PATH $ADDR"
-sleep 1
+sleep 5
 echo "reset"
 ) | telnet localhost 4444 2>/dev/null
 

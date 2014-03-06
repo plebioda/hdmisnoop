@@ -248,16 +248,18 @@ typedef union
 typedef union
 {
 	uint32_t reg;
+#if 0
 	struct
 	{
 		uint16_t NPTXFD		:16;	/* Bits 15:0  : Non-periodic Tx FIFO depth */
 	       	uint16_t NPTXFSA	:16;	/* Bits 31:16 : Non-periodic transmit RAM start address */
 	} h;
+#endif
 	struct
 	{
 		uint16_t TX0FD		:16;	/* Bits 15:0  : Endpoint 0 Tx FIFO depth */
 		uint16_t TX0FSA		:16;	/* Bits 31:16 : Endpoint 0 transmit RAM start address */
-	} d;
+	} b;
 } USB_OTG_FS_HNPTXFSIZ_T;
 
 typedef USB_OTG_FS_HNPTXFSIZ_T USB_OTG_FS_DIEPTXF0_T;

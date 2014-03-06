@@ -1,8 +1,9 @@
-#include <stm32_usb_fs.h>
 #include <usb.h>
 #include <debug.h>
 #include <usb_dbg.h>
 #include <usb_dev_platform.h>
+#include <stm32f4xx_usb_fs.h>
+#include <stm32f4xx_usb_dbg.h>
 
 struct usb_dev_platform
 {
@@ -17,7 +18,7 @@ struct usb_dev_platform
 		USB_OTG_FS_DOEPINTx_T * DOEPINT[USB_OTG_FS_DEVICE_MODE_FIFO_NUM];
 		USB_OTG_FS_DOEPSIZx_T * DOEPSIZ[USB_OTG_FS_DEVICE_MODE_FIFO_NUM];
 		USB_OTG_FS_DTXFSTSx_T * DTXFSTS[USB_OTG_FS_DEVICE_MODE_FIFO_NUM];
-		uint32_t * DFIFO[USB_OTG_FS_DEVICE_MODE_FIFO_NUM];
+		__IO uint32_t * DFIFO[USB_OTG_FS_DEVICE_MODE_FIFO_NUM];
 	} regs;
 	struct usb_dev_platform_callbacks * callbacks;
 	struct usb_setup_packet setup_packet;
@@ -35,8 +36,8 @@ int usb_dev_platform_write_packet(struct usb_dev_platform * usbd, uint32_t n, ui
 {
 	__IO uint32_t * fifo = (uint32_t*)usbd->regs.DFIFO[n];
 	uint32_t * buff32 = (uint32_t*)buff;
-#if 1
-		printf("{");
+#if DEBUG_CONFIG_USB_DEV_WRITE_PACKET
+		printf("%d: {", n);
 		for(uint32_t i=0;i<len-1;i++)
 		{
 			printf("0x%x, ", buff[i]);
@@ -60,7 +61,7 @@ int usb_dev_platform_write_fifo(usb_dev_platform_handle_t usbd, struct usb_devic
 
 	uint16_t len32 = (len + 3) / 4;
 
-	if(ep->buff.len > 0 && usbd->regs.DTXFSTS[n]->b.INEPTFSAV > ep->buff.len)
+	if(ep->buff.len > 0 && usbd->regs.DTXFSTS[n]->b.INEPTFSAV > len32)
 	{
 		usb_dev_platform_write_packet(usbd, n, ep->buff.ptr, ep->buff.len);
 		ep->buff.len = 0;
@@ -73,7 +74,6 @@ uint32_t usb_dev_platform_in_ep_irq_process(struct usb_dev_platform * usbd, uint
 {
 	if(diepint.b.XFRC)
 	{
-		//dbg("XFRC\n");
 		usbd->regs.DMCSR->DIEPEMPMSK.b.INEPTXFEM |= (1 << n);
 		usbd->regs.DIEPINT[n]->b.XFRC = 1;
 	}
@@ -285,12 +285,13 @@ int usb_dev_platform_ep0_tx_start(struct usb_dev_platform * usbd, struct usb_dev
 
 	USB_OTG_FS_DIEPCTL0_T diepctl;
 	
-	diepctl.reg = 0;
-
+	diepctl.reg = usbd->regs.DIEPCTL[ep->id]->reg;
+	
 	diepctl.b.CNAK = 1;
 	diepctl.b.EPENA = 1;
 
 	usbd->regs.DIEPCTL[ep->id]->reg = diepctl.reg;
+	dbg("tx_start: DIEPCTL[%d] = 0x%08x\n", ep->id, usbd->regs.DIEPCTL[ep->id]->reg);
 	
 	usbd->regs.DMCSR->DIEPEMPMSK.b.INEPTXFEM |= (1 << ep->id);
 
@@ -327,7 +328,7 @@ int usb_dev_platform_ep_activate(struct usb_dev_platform * usbd, struct usb_devi
 
 			usbd->regs.DIEPCTL[ep->id]->reg = diepctl.reg;
 		}
-		
+
 		usbd->regs.DMCSR->DAINTMSK.b.IEPM |= (1 << ep->id);
 	}
 	else
@@ -348,6 +349,8 @@ int usb_dev_platform_ep_activate(struct usb_dev_platform * usbd, struct usb_devi
 
 		usbd->regs.DMCSR->DAINTMSK.b.OEPM |= (1 << ep->id);
 	}
+
+	return 0;
 }
 
 uint32_t usb_dev_platform_irq_usbrst(struct usb_dev_platform * usbd)
@@ -388,6 +391,7 @@ uint32_t usb_dev_platform_irq_usbrst(struct usb_dev_platform * usbd)
 	diepmsk.b.XFRCM = 1;
 	diepmsk.b.TOM = 1;
 	diepmsk.b.EPDM = 1;
+//	diepmsk.b.ITTXFEMSK = 1;
 
 	usbd->regs.DMCSR->DIEPMSK = diepmsk;
 	
@@ -404,6 +408,8 @@ uint32_t usb_dev_platform_irq_usbrst(struct usb_dev_platform * usbd)
 	doepsiz0.b.PKTCNT = USB_DEV_DOEPSIZ0_PKTCNT;
 	doepsiz0.b.STUPCNT = USB_DEV_DOEPSIZ0_STUPCNT;
 	usbd->regs.DOEPSIZ[0]->reg = doepsiz0.reg;
+	dbg("DOEPSIZ0 = 0x%08x\n", doepsiz0.reg);
+
 
 	USB_OTG_FS_GINTSTS_T gintsts;
 	gintsts.reg = 0;
@@ -411,6 +417,8 @@ uint32_t usb_dev_platform_irq_usbrst(struct usb_dev_platform * usbd)
 	usbd->regs.CGCSR->GINTSTS = gintsts;
 	
 	USB_DEV_PLATFORM_CALLBACK(usbd, reset);
+	
+	dbg("0x%08x:DOEPSIZ0 = 0x%08x\n", usbd->regs.DOEPSIZ[0], usbd->regs.DOEPSIZ[0]->reg);
 
 	return 0;
 }
@@ -479,7 +487,13 @@ usb_speed_t usb_dev_platform_get_speed(struct usb_dev_platform * usbd)
 
 int usb_dev_platform_ep0_activate(struct usb_dev_platform * usbd)
 {
-	usbd->regs.DIEPCTL[0]->b.MPSIZ = USB_DIEPCTL_MPSIZ_64;
+	USB_OTG_FS_DSTS_T dsts = usbd->regs.DMCSR->DSTS;
+	USB_OTG_FS_DIEPCTL0_T diepctl;
+	
+	diepctl.reg = usbd->regs.DIEPCTL[0]->reg;
+	diepctl.b.MPSIZ = USB_DIEPCTL_MPSIZ_64;
+	usbd->regs.DIEPCTL[0]->reg = diepctl.reg;
+	
 	usbd->regs.DMCSR->DCTL.b.CGINAK = 1;
 
 	return 0;
@@ -515,6 +529,7 @@ int usb_dev_platform_irq_enumdne(struct usb_dev_platform * usbd)
 
 uint32_t usb_irq(struct usb_dev_platform * usbd)
 {
+	static int _iepint = 0;
 	if(USB_MODE_DEVICE == usb_dev_platform_get_mode(usbd))
 	{
 		USB_OTG_FS_GINTSTS_T gintsts = usb_get_core_interrupts(usbd);
@@ -525,14 +540,16 @@ uint32_t usb_irq(struct usb_dev_platform * usbd)
 			return 0;
 		}
 		
-		if(0)
+		if(gintsts.b.OEPINT)
 		{
-			USB_OTG_FS_GINTSTS_T tmp = gintsts;
-			tmp.b.SOF = 0;
-			if(tmp.reg)
-			{
-				usb_dbg_print_gintsts(gintsts);
-			}
+			dbg("OEPINT\n");
+			usb_dev_platform_irq_oepint(usbd);
+		}
+
+		if(gintsts.b.IEPINT)
+		{
+			dbg("IEPINT\n");
+			usb_dev_platform_irq_iepint(usbd);
 		}
 
 		if(gintsts.b.SOF)
@@ -557,22 +574,6 @@ uint32_t usb_irq(struct usb_dev_platform * usbd)
 			dbg("USBRST\n");
 			usb_dev_platform_irq_usbrst(usbd);
 		}
-
-		if(gintsts.b.OEPINT)
-		{
-			dbg("OEPINT\n");
-			usb_dev_platform_irq_oepint(usbd);
-		}
-
-		if(gintsts.b.IEPINT)
-		{
-			dbg("IEPINT\n");
-			usb_dev_platform_irq_iepint(usbd);
-		}
-	}
-	else
-	{
-		//dbg("USB in host mode\n");
 	}
 }
 
@@ -649,7 +650,7 @@ int usb_init_io()
 	GPIOA->PUPDR &=~(GPIO_PUPDR_PUPDR8);
 	/* Speed */
 	GPIOA->OSPEEDR &=~(GPIO_OSPEEDER_OSPEEDR8);
-	GPIOA->OSPEEDR |= (GPIO_OSPEEDER_OSPEEDR8_1);
+	GPIOA->OSPEEDR |= (GPIO_OSPEEDER_OSPEEDR8_1|GPIO_OSPEEDER_OSPEEDR8_0);
 
 	GPIOA->AFR[1] &= ~0xf;
 	GPIOA->AFR[1] |= 0xa;
@@ -660,12 +661,12 @@ int usb_init_io()
 	/* Input */
 	GPIOA->MODER &=~(GPIO_MODER_MODER9);
 	/* Open drain */
-	GPIOA->OTYPER |= (GPIO_OTYPER_OT_9);
+	//GPIOA->OTYPER |= (GPIO_OTYPER_OT_9);
 	/* No pull-up, no pull-down */
 	GPIOA->PUPDR &=~(GPIO_PUPDR_PUPDR9);
 	/* Speed */
-	GPIOA->OSPEEDR &=~(GPIO_OSPEEDER_OSPEEDR9);
-	GPIOA->OSPEEDR |= (GPIO_OSPEEDER_OSPEEDR9_1);
+	//GPIOA->OSPEEDR &=~(GPIO_OSPEEDER_OSPEEDR9);
+	//GPIOA->OSPEEDR |= (GPIO_OSPEEDER_OSPEEDR9_1);
 
 	/*
 	 *  PA10 - USB OTG FS ID
@@ -673,13 +674,15 @@ int usb_init_io()
 	/* Input */
 	GPIOA->MODER &=~(GPIO_MODER_MODER10);
 	/* Open drain */
-	GPIOA->OTYPER |= (GPIO_OTYPER_OT_10);
+	//GPIOA->OTYPER |= (GPIO_OTYPER_OT_10);
 	/* Pull-up*/
 	GPIOA->PUPDR &=~(GPIO_PUPDR_PUPDR10);
-	GPIOA->PUPDR &=~(GPIO_PUPDR_PUPDR10_0);
+	GPIOA->PUPDR |= (GPIO_PUPDR_PUPDR10_0);
 	/* Speed */
-	GPIOA->OSPEEDR &=~(GPIO_OSPEEDER_OSPEEDR10);
-	GPIOA->OSPEEDR |= (GPIO_OSPEEDER_OSPEEDR10_1);
+	//GPIOA->OSPEEDR &=~(GPIO_OSPEEDER_OSPEEDR10);
+	//GPIOA->OSPEEDR |= (GPIO_OSPEEDER_OSPEEDR10_1);
+	GPIOA->AFR[1] &= ~0xf00;
+	GPIOA->AFR[1] |= 0xa00;
 
 	/*
 	 *  PA11 - USB OTG FS DM
@@ -693,7 +696,7 @@ int usb_init_io()
 	GPIOA->PUPDR &=~(GPIO_PUPDR_PUPDR11);
 	/* Speed */
 	GPIOA->OSPEEDR &=~(GPIO_OSPEEDER_OSPEEDR11);
-	GPIOA->OSPEEDR |= (GPIO_OSPEEDER_OSPEEDR11_1);
+	GPIOA->OSPEEDR |= (GPIO_OSPEEDER_OSPEEDR11_1|GPIO_OSPEEDER_OSPEEDR11_0);
 
 	GPIOA->AFR[1] &= ~0xf000;
 	GPIOA->AFR[1] |= 0xa000;
@@ -710,11 +713,12 @@ int usb_init_io()
 	GPIOA->PUPDR &=~(GPIO_PUPDR_PUPDR12);
 	/* Speed */
 	GPIOA->OSPEEDR &=~(GPIO_OSPEEDER_OSPEEDR12);
-	GPIOA->OSPEEDR |= (GPIO_OSPEEDER_OSPEEDR12_1);
+	GPIOA->OSPEEDR |= (GPIO_OSPEEDER_OSPEEDR12_1|GPIO_OSPEEDER_OSPEEDR12_0);
 
 	GPIOA->AFR[1] &= ~0xf0000;
 	GPIOA->AFR[1] |= 0xa0000;
 	
+	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
 	RCC->AHB2ENR |= RCC_AHB2ENR_OTGFSEN;
 
 	return 0;
@@ -727,10 +731,7 @@ int usb_init_core()
 	USB_OTG_FS_GCCFG_T gccfg;
 
 	/* Disable global Interrupt */
-	ahbcfg.reg = 0;
-	ahbcfg.b.GINTMSK = 1;
-	
-	USB_OTG_FS_CGCSR->GAHBCFG = ahbcfg;
+	USB_OTG_FS_CGCSR->GAHBCFG.b.GINTMSK = 0;
 	
 	/*
 	 * Core Init
@@ -748,6 +749,10 @@ int usb_init_core()
 	/*
 	 * Core reset
 	 */
+
+	/*
+	 * Wait for AHB master IDLE state
+	 */
 	counter = 0;
 	do
 	{
@@ -759,6 +764,10 @@ int usb_init_core()
 		}
 	} while(USB_OTG_FS_CGCSR->GRSTCTL.b.AHBIDL == 0);
 
+	/*
+	 * Core Soft Reset
+	 */
+	USB_OTG_FS_CGCSR->GRSTCTL.b.CSRST = 1;
 	counter = 0;
 	do
 	{
@@ -779,6 +788,7 @@ int usb_init_core()
 	gccfg.b.PWRDWN = 1;
 	gccfg.b.VBUSASEN = 1;
 	gccfg.b.VBUSBSEN = 1;
+	gccfg.b.NOVBUSSENS = 1;
 	USB_OTG_FS_CGCSR->GCCFG = gccfg;
 	delay_us(20000);
 
@@ -786,6 +796,7 @@ int usb_init_core()
 	 * Force device mode
 	 */
 	usbcfg = USB_OTG_FS_CGCSR->GUSBCFG;
+	usbcfg.b.FHMOD = 0;
 	usbcfg.b.FDMOD = 1;
 	USB_OTG_FS_CGCSR->GUSBCFG = usbcfg;
 	delay_us(50000);
@@ -800,21 +811,26 @@ int usb_init_core()
 
 	dcfg = USB_OTG_FS_DMCSR->DCFG;
 	dcfg.b.PFIVL = 0;
-	/* Full speed */
-	dcfg.b.DSPD = 3;
 	USB_OTG_FS_DMCSR->DCFG = dcfg;
 	
+	/* Full speed */
+	dcfg = USB_OTG_FS_DMCSR->DCFG;
+	dcfg.b.DSPD = 3;
+	USB_OTG_FS_DMCSR->DCFG = dcfg;
+
 	USB_OTG_FS_CGCSR->GRXFSIZ.b.RXFD = 128;
 
 	/* EP0 TX */
+	/*TODO check addr */
 	USB_OTG_FS_DIEPTXF0_T dieptxf0;
-	dieptxf0.d.TX0FD = 32;
-	dieptxf0.d.TX0FSA = 128;
-	USB_OTG_FS_CGCSR->DIEPTXF0 = dieptxf0;
+	dieptxf0.b.TX0FD = 32;
+	dieptxf0.b.TX0FSA = 128;
+	dieptxf0.reg = 0x00200080;
+	USB_OTG_FS_CGCSR->DIEPTXF0.reg = dieptxf0.reg;
 
 	/* EP1 TX */
 	USB_OTG_FS_DIEPTXFx_T dieptxf1;
-	dieptxf1.b.INEPTXSA = dieptxf0.d.TX0FSA + dieptxf0.d.TX0FD; 
+	dieptxf1.b.INEPTXSA = dieptxf0.b.TX0FSA + dieptxf0.b.TX0FD; 
 	dieptxf1.b.INEPTXFD = 128;
 	USB_OTG_FS_CGCSR->DIEPTXFx[0] = dieptxf1;
 	
@@ -827,8 +843,8 @@ int usb_init_core()
 	/* EP3 TX */
 	USB_OTG_FS_DIEPTXFx_T dieptxf3;
 	dieptxf3.b.INEPTXSA = dieptxf2.b.INEPTXSA + dieptxf2.b.INEPTXFD; 
-	dieptxf3.b.INEPTXFD = 32;
-	USB_OTG_FS_CGCSR->DIEPTXFx[1] = dieptxf3;
+	dieptxf3.b.INEPTXFD = 0;
+	USB_OTG_FS_CGCSR->DIEPTXFx[2] = dieptxf3;
 
 	USB_OTG_FS_GRSTCTL_T grstctl;
 
@@ -887,25 +903,38 @@ int usb_init_core()
 		USB_OTG_FS_DOEPINT(i)->reg = 0xFF;
 	}
 
+	/*TODO what is this bit ???? */
+	USB_OTG_FS_DMCSR->DIEPMSK.reg |= (1<<8);
+
+	/*
+	 * Enable Device Mode Interrupts
+	 */
 	USB_OTG_FS_GINTMSK_T intmsk;
 	intmsk.reg = 0;
-	USB_OTG_FS_CGCSR->GINTMSK.reg = 0;
-	//USB_OTG_FS_CGCSR->GOTGINT.reg = 0xffffffff;
+	USB_OTG_FS_CGCSR->GINTMSK = intmsk;
+	
+	/*
+	 * Enable common interrupts
+	 */
+	USB_OTG_FS_CGCSR->GOTGINT.reg = 0xffffffff;
+
 	USB_OTG_FS_CGCSR->GINTSTS.reg = 0xbfffffff;
-
-	USB_OTG_FS_CGCSR->GINTMSK.b.RXFLVLM = 1;
-	USB_OTG_FS_CGCSR->GINTMSK.b.WUIM = 1;
-	USB_OTG_FS_CGCSR->GINTMSK.b.USBSUSPM = 1;
-	USB_OTG_FS_CGCSR->GINTMSK.b.USBRST = 1;
-	USB_OTG_FS_CGCSR->GINTMSK.b.ENUMDNEM = 1;
-	USB_OTG_FS_CGCSR->GINTMSK.b.IEPINT = 1;
-	USB_OTG_FS_CGCSR->GINTMSK.b.OEPINT = 1;
-	USB_OTG_FS_CGCSR->GINTMSK.b.SOFM = 1;
-	USB_OTG_FS_CGCSR->GINTMSK.b.IISOIXFRM = 1;
-	USB_OTG_FS_CGCSR->GINTMSK.b.IPXFRM = 1;
-
+	
+	intmsk.b.WUIM = 1;
+	intmsk.b.USBSUSPM = 1;
+	intmsk.b.RXFLVLM = 1;
+	intmsk.b.USBRST = 1;
+	intmsk.b.ENUMDNEM = 1;
+	intmsk.b.IEPINT = 1;
+	intmsk.b.OEPINT = 1;
+	intmsk.b.SOFM = 1;
+	intmsk.b.IISOIXFRM = 1;
+	intmsk.b.IPXFRM = 1;
+	
+	USB_OTG_FS_CGCSR->GINTMSK = intmsk;
+	
 	/* Enable global int */
-	ahbcfg.reg = 0;
+	ahbcfg = USB_OTG_FS_CGCSR->GAHBCFG;
 	ahbcfg.b.GINTMSK = 1;
 	USB_OTG_FS_CGCSR->GAHBCFG = ahbcfg;
 
