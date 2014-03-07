@@ -21,7 +21,7 @@ int usb_dev_ep_tx(struct usb_device * usbd, uint8_t n, uint8_t * buff, uint32_t 
 	}
 }
 
-int usb_dev_ep_rx(struct usb_device * usbd)
+int usb_dev_ep_rx(struct usb_device * usbd, uint32_t n)
 {
 	TODO("Implement me\n");
 }
@@ -33,16 +33,22 @@ int usb_dev_ctl_send_data(struct usb_device * usbd, uint8_t * buff, uint32_t len
 
 int usb_dev_ctl_req_error(struct usb_device * usbd, struct usb_setup_packet * req)
 {
-	TODO("Implement me\n");
+	struct usb_device_endpoint * ep_ctl_in = &usbd->ep_in[0];
+	struct usb_device_endpoint * ep_ctl_out = &usbd->ep_out[0];
+
+	usb_dev_platform_ep_stall(usbd->platform, ep_ctl_in);
+	usb_dev_platform_ep_stall(usbd->platform, ep_ctl_out);
+	
+	return usb_dev_platform_rx_setup(usbd->platform, ep_ctl_out);
 }
 
 int usb_dev_ctl_send_status(struct usb_device * usbd)
 {
 	usb_dev_ep_tx(usbd, 0, NULL, 0);
-	
-	usb_dev_ep_rx(usbd);
 
-	return 0;
+	struct usb_device_endpoint * ep = &usbd->ep_out[0];
+
+	return usb_dev_platform_rx_setup(usbd->platform, ep);
 }
 
 int usb_dev_request_set_address(struct usb_device * usbd, struct usb_setup_packet * setup_packet)
@@ -62,13 +68,13 @@ int usb_dev_request_set_address(struct usb_device * usbd, struct usb_setup_packe
 
 	usb_address_t addr = (usb_address_t)(setup_packet->wValue.address&USB_ADDRESS_MASK);
 	
-	dbg("addr = %d\n", addr);
-
 	if(addr && !usb_dev_platform_set_address(usbd->platform, addr))
 	{
 		usbd->address = addr;
 		usbd->state = USB_DEVICE_STATE_ADDRESS;
+		
 		dbg("USB Device Address: %d\n", addr);
+		
 		return usb_dev_ctl_send_status(usbd);
 	}
 	else
@@ -80,45 +86,62 @@ int usb_dev_request_set_address(struct usb_device * usbd, struct usb_setup_packe
 	}
 }
 
+
 int usb_dev_request_get_descriptor(struct usb_device * usbd, struct usb_setup_packet * setup_packet)
 {
-	uint8_t * buff = NULL;
-	uint32_t len = 0;
-	
+	struct usb_device_buffer buff = {
+		.ptr = NULL,
+		.len = 0
+	};
+
 	if(USB_REQUEST_DIRECTION_DEVICE_TO_HOST != setup_packet->bmRequestType.b.Direction)
 	{
 		return -1;
 	}
-	
-	switch(setup_packet->wValue.desc.type)
+
+	usb_descriptor_type_t type = setup_packet->wValue.desc.type;
+
+	switch(type)
 	{
 		case USB_DESCRIPTOR_TYPE_DEVICE:
 			if(usbd->fops.get_device_descriptor)
 			{
-				usb_ret_t ret = usbd->fops.get_device_descriptor(usbd, &buff, &len);
+				usb_ret_t ret = usbd->fops.get_device_descriptor(usbd, type, &buff);
 				if(ret)
 				{
 					return -1;
 				}
 				if(setup_packet->wLength == 64 && USB_DEVICE_STATE_DEFAULT == usbd->state)
 				{
-					len = 8;
+					buff.len = 8;
 				}
 			}
 			break;
 		case USB_DESCRIPTOR_TYPE_CONFIGURATION:
+			if(usbd->fops.get_device_descriptor)
+			{
+				if(usbd->fops.get_device_descriptor(usbd, type, &buff))
+				{
+					return -1;
+				}
+			}
+			break;
 		case USB_DESCRIPTOR_TYPE_STRING:
 		case USB_DESCRIPTOR_TYPE_INTERFACE:
 		case USB_DESCRIPTOR_TYPE_ENDPOINT:
+			return -1;
 		case USB_DESCRIPTOR_TYPE_DEVICE_QUALIFIER:
+			usb_dev_ctl_req_error(usbd, setup_packet);
+			break;
 		case USB_DESCRIPTOR_TYPE_OTHER_SPEED_CONFIGURATION:
 		case USB_DESCRIPTOR_TYPE_INTERFACE_POWER:
 		default:
 			return -1;
 	}
-	if(NULL != buff && len>0 && setup_packet->wLength>0)
+
+	if(NULL != buff.ptr && buff.len>0 && setup_packet->wLength>0)
 	{
-		return usb_dev_ctl_send_data(usbd, buff, len);
+		return usb_dev_ctl_send_data(usbd, buff.ptr, buff.len);
 	}
 	else
 	{
@@ -199,6 +222,33 @@ int usb_dev_ep_open(struct usb_device * usbd, usb_endpoint_dir_t dir, uint8_t id
 	return usb_dev_platform_ep_activate(usbd->platform, ep);
 }
 
+int usb_dev_ep_rx_status(struct usb_device * usbd, struct usb_device_endpoint * ep)
+{
+	ep->buff.ptr = NULL;
+	ep->buff.len = 0;
+	
+	usb_dev_platform_rx_prepare(usbd->platform, ep);
+
+	return usb_dev_platform_rx_setup(usbd->platform, ep);
+}
+
+void usb_dev_platform_callback_tx_completed(void * context, uint32_t n)
+{
+	dbg("tx_completed\n");
+	if(NULL != context)
+	{
+		struct usb_device * usbd = (struct usb_device*)context;
+
+		if(n < USB_DEVICE_IN_ENDPOINTS_NUMBER)
+		{
+			TODO("Check write data\n");
+			
+			usb_dev_ep_rx_status(usbd, &usbd->ep_out[n]);
+		}
+
+	}
+}
+
 void usb_dev_platform_callback_tx_fifo_empty(void * context, uint32_t n)
 {
 	if(NULL != context)
@@ -207,7 +257,6 @@ void usb_dev_platform_callback_tx_fifo_empty(void * context, uint32_t n)
 		
 		if(n < USB_DEVICE_IN_ENDPOINTS_NUMBER)
 		{
-			usbd->ep_in[n].id = n;
 			usb_dev_platform_write_fifo(usbd->platform, &usbd->ep_in[n]);
 		}
 	}
@@ -282,6 +331,7 @@ int usb_dev_init(struct usb_device * usbd)
 	usbd->platform_callbacks.reset = usb_dev_platform_callback_reset;
 	usbd->platform_callbacks.sof = usb_dev_platform_callback_sof;
 	usbd->platform_callbacks.tx_fifo_empty = usb_dev_platform_callback_tx_fifo_empty;
+	usbd->platform_callbacks.tx_completed = usb_dev_platform_callback_tx_completed;
 	usbd->platform_callbacks.setup_done = usb_dev_platform_callback_setup_done;
 
 	usb_dev_platform_handle_t handle = usb_dev_platform_init(&usbd->platform_callbacks);

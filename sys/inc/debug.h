@@ -4,6 +4,10 @@
 #include <stdio.h>
 #include <clock.h>
 
+#ifndef DEBUG_CONFIG_TIMESTAMPS
+#define DEBUG_CONFIG_TIMESTAMPS	1
+#endif
+
 #if DEBUG_CONFIG_TIMESTAMPS
 #define dbg(fmt, args...)	{						\
 					up_time_t time = get_up_time();		\
@@ -16,7 +20,7 @@
 #define _dbg(fmt, args...)	printf(fmt, ## args)
 
 #define TODO(fmt, args...)	dbg("** TODO at [%s:%d]\n", __FILE__, __LINE__);	\
-				dbg("********** " fmt, ## args)
+				dbg("** " fmt, ## args)
 
 #define STR(name)	#name
 #define PRINT_FIELD(n, f)	dbg("%s.%s	: %d\n", STR(n), STR(f), n.b.f)

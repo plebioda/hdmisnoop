@@ -36,7 +36,7 @@ usb_ret_t usb_cdc_sof(struct usb_device * usbd)
 
 }
 
-usb_ret_t usb_cdc_get_device_descriptor(struct usb_device * usbd, uint8_t ** buff, uint32_t * len)
+usb_ret_t usb_cdc_get_device_descriptor(struct usb_device * usbd, usb_descriptor_type_t type, struct usb_device_buffer * buff)
 {
 #define USB_CDC_MAX_PACKET_SIZE0	64	
 #define USB_CDC_VID			0x0483
@@ -48,7 +48,7 @@ usb_ret_t usb_cdc_get_device_descriptor(struct usb_device * usbd, uint8_t ** buf
 	/*
 	 * {0x12, 0x1, 0x0, 0x2, 0x0, 0x0, 0x0, 0x40, 0x83, 0x4, 0x40, 0x57, 0x0, 0x2, 0x1, 0x2, 0x3, 0x1}
 	 */
-	static usb_device_descriptor_t desc = 
+	static usb_device_descriptor_t desc_device = 
 	{
 		.bLength 		= sizeof(usb_device_descriptor_t),
 		.bDescriptorType 	= 0x1,
@@ -66,10 +66,17 @@ usb_ret_t usb_cdc_get_device_descriptor(struct usb_device * usbd, uint8_t ** buf
 		.bNumConfigurations	= USB_CDC_NUM_CFG
 	};
 
-	if(NULL != buff && NULL != len)
+	if(NULL != buff)
 	{
-		*buff = (uint8_t*)&desc;
-		*len = sizeof(desc);
+		switch(type)
+		{
+			case USB_DESCRIPTOR_TYPE_DEVICE:
+				buff->ptr = (uint8_t*)&desc_device;
+				buff->len = sizeof(desc_device);
+				break;
+			default:
+				return -1;
+		}
 	}
 
 	return 0;

@@ -29,6 +29,10 @@ void usb_dbg_print_gintsts(USB_OTG_FS_GINTSTS_T GINTSTS);
 #define USB_DEV_PLATFORM_CALLBACK(n, cb, args...)	if((n)->callbacks->cb)						\
 							{								\
 								(n)->callbacks->cb((n)->callbacks->context, ## args);	\
+							}								\
+							else								\
+							{								\
+								dbg("'%s' callback not initialized\n", STR(cb));	\
 							}
 
 
@@ -53,6 +57,100 @@ int usb_dev_platform_write_packet(struct usb_dev_platform * usbd, uint32_t n, ui
 	return len;
 }
 
+int usb_dev_platform_ep_stall(usb_dev_platform_handle_t usbd, struct usb_device_endpoint * ep)
+{
+	ep->stall = 1;
+	
+	if(USB_ENDPOINT_DIR_IN == ep->dir)
+	{
+		USB_OTG_FS_DIEPCTLx_T diepctl;
+		
+		diepctl.reg = usbd->regs.DIEPCTL[ep->id]->reg;
+		
+		if(diepctl.b.EPENA)
+		{
+			diepctl.b.EPDIS = 1;
+		}
+		
+		diepctl.b.STALL = 1;
+		
+		usbd->regs.DIEPCTL[ep->id]->reg = diepctl.reg;
+
+		return 0;
+	}
+	else if(USB_ENDPOINT_DIR_OUT == ep->dir)
+	{
+		USB_OTG_FS_DOEPCTLx_T doepctl;
+
+		doepctl.reg = usbd->regs.DOEPCTL[ep->id]->reg;
+
+		doepctl.b.STALL = 1;
+
+		usbd->regs.DOEPCTL[ep->id]->reg = doepctl.reg;
+
+		return 0;
+	}
+	else
+	{
+		return -1;
+	}
+}
+
+#define USB_DEV_DOEPSIZ0_XFRSIZ		(8*3)
+#define USB_DEV_DOEPSIZ0_PKTCNT		1
+#define USB_DEV_DOEPSIZ0_STUPCNT	3
+
+int usb_dev_platform_rx_setup(usb_dev_platform_handle_t usbd, struct usb_device_endpoint * ep)
+{
+	if(ep->id == 0)
+	{
+		USB_OTG_FS_DOEPSIZ0_T doepsiz;
+
+		doepsiz.reg = 0;
+		doepsiz.b.STUPCNT = USB_DEV_DOEPSIZ0_STUPCNT;
+		doepsiz.b.PKTCNT = USB_DEV_DOEPSIZ0_PKTCNT;
+		doepsiz.b.XFRSIZ = USB_DEV_DOEPSIZ0_XFRSIZ;
+
+		usbd->regs.DOEPSIZ[0]->reg = doepsiz.reg;
+
+		return 0;
+	}
+	else
+	{
+		TODO("Implement me\n");
+		return -1;
+	}
+}
+
+int usb_dev_platform_rx_prepare(usb_dev_platform_handle_t usbd, struct usb_device_endpoint * ep)
+{
+	if(ep->id == 0)
+	{
+		USB_OTG_FS_DOEPCTL0_T doepctl;
+		USB_OTG_FS_DOEPSIZ0_T doepsiz;
+
+		doepctl.reg = usbd->regs.DOEPCTL[0]->reg;
+		doepsiz.reg = usbd->regs.DOEPSIZ[0]->reg;
+
+		doepsiz.b.PKTCNT = 1;
+		doepsiz.b.XFRSIZ = ep->mps;
+
+		usbd->regs.DOEPSIZ[0]->reg = doepsiz.reg = 0;
+
+		doepctl.b.CNAK = 1;
+		doepctl.b.EPENA = 1;
+
+		usbd->regs.DOEPCTL[0]->reg = doepctl.reg;
+
+		return 0;
+	}
+	else
+	{
+		TODO("Implement me\n");
+		return -1;
+	}
+}
+
 int usb_dev_platform_write_fifo(usb_dev_platform_handle_t usbd, struct usb_device_endpoint * ep)
 {
 	uint16_t len = ep->buff.len;
@@ -75,6 +173,9 @@ uint32_t usb_dev_platform_in_ep_irq_process(struct usb_dev_platform * usbd, uint
 	if(diepint.b.XFRC)
 	{
 		usbd->regs.DMCSR->DIEPEMPMSK.b.INEPTXFEM |= (1 << n);
+		
+		USB_DEV_PLATFORM_CALLBACK(usbd, tx_completed, n);
+		
 		usbd->regs.DIEPINT[n]->b.XFRC = 1;
 	}
 	if(diepint.b.EPDISD)
@@ -408,13 +509,9 @@ uint32_t usb_dev_platform_irq_usbrst(struct usb_dev_platform * usbd)
 	/* Reset device address*/
 	usbd->regs.DMCSR->DCFG.b.DAD = 0;
 
-#define USB_DEV_DOEPSIZ0_XFRXIZ		(8*3)
-#define USB_DEV_DOEPSIZ0_PKTCNT		1
-#define USB_DEV_DOEPSIZ0_STUPCNT	3
-
 	USB_OTG_FS_DOEPSIZ0_T doepsiz0;
 	doepsiz0.reg = 0;
-	doepsiz0.b.XFRSIZ = USB_DEV_DOEPSIZ0_XFRXIZ;
+	doepsiz0.b.XFRSIZ = USB_DEV_DOEPSIZ0_XFRSIZ;
 	doepsiz0.b.PKTCNT = USB_DEV_DOEPSIZ0_PKTCNT;
 	doepsiz0.b.STUPCNT = USB_DEV_DOEPSIZ0_STUPCNT;
 	usbd->regs.DOEPSIZ[0]->reg = doepsiz0.reg;

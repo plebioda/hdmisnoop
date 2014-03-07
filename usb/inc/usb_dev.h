@@ -4,13 +4,14 @@
 #include <usb.h>
 #include <usb_conf.h>
 #include <usb_dev_platform.h>
+#include <usb_dev_endpoint.h>
 
 struct usb_device;
 
 struct usb_device_fops
 {
 	usb_ret_t (*sof)(struct usb_device * usbd);
-	usb_ret_t (*get_device_descriptor)(struct usb_device * usbd, uint8_t ** buff, uint32_t * len);
+	usb_ret_t (*get_device_descriptor)(struct usb_device * usbd, usb_descriptor_type_t type, struct usb_device_buffer * buff);
 };
 
 struct usb_device

@@ -2,21 +2,7 @@
 #define _USB_DEV_PLATFORM_H
 
 #include <usb.h>
-
-struct usb_device_buffer
-{
-	uint8_t * ptr;
-	uint32_t len;
-};
-
-struct usb_device_endpoint
-{
-	uint8_t id;
-	usb_endpoint_dir_t dir;
-	usb_endpoint_type_t type;
-	struct usb_device_buffer buff;
-	uint16_t mps;
-};
+#include <usb_dev_endpoint.h>
 
 struct usb_dev_platform_callbacks
 {
@@ -26,6 +12,7 @@ struct usb_dev_platform_callbacks
 	void (*setup_done)(void * context, usb_setup_packet_t * setup_packet);
 	void (*sof)(void * context);
 	void (*tx_fifo_empty)(void * context, uint32_t n);
+	void (*tx_completed)(void * context, uint32_t n);
 };
 
 struct usb_dev_platform;
@@ -37,5 +24,8 @@ int usb_dev_platform_ep0_tx_start(usb_dev_platform_handle_t handle, struct usb_d
 int usb_dev_platform_ep_activate(usb_dev_platform_handle_t handle, struct usb_device_endpoint * ep);
 int usb_dev_platform_write_fifo(usb_dev_platform_handle_t handle, struct usb_device_endpoint * ep);
 int usb_dev_platform_set_address(usb_dev_platform_handle_t handle, usb_address_t addr);
+int usb_dev_platform_rx_prepare(usb_dev_platform_handle_t usbd, struct usb_device_endpoint * ep);
+int usb_dev_platform_rx_setup(usb_dev_platform_handle_t usbd, struct usb_device_endpoint * ep);
+int usb_dev_platform_ep_stall(usb_dev_platform_handle_t usbd, struct usb_device_endpoint * ep);
 
 #endif //_USB_DEV_PLATFORM_H
