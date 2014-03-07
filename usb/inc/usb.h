@@ -17,10 +17,8 @@ typedef enum
 
 typedef enum
 {
-	USB_ENDPOINT_DIR_IN,
 	USB_ENDPOINT_DIR_OUT,
-
-	USB_ENDPOINT_DIR_MAX
+	USB_ENDPOINT_DIR_IN,
 } usb_endpoint_dir_t;
 
 typedef enum
@@ -160,5 +158,76 @@ typedef struct usb_device_descriptor
 	uint8_t iSerialNumber;
 	uint8_t bNumConfigurations;
 } usb_device_descriptor_t;
+
+typedef struct usb_configuration_descritor
+{
+	uint8_t bLength;
+	uint8_t bDescriptorType;
+	uint16_t wTotalLength;
+	uint8_t bNumInterfaces;
+	uint8_t bConfigurationValue;
+	uint8_t iConfiguration;
+	struct 
+	{
+		uint8_t reserved4_0	: 5;
+		uint8_t RemoteWakeup	: 1;
+		uint8_t SelfPowered	: 1;
+		uint8_t reserved7	: 1;
+	} bmAttributes;
+	uint8_t bMaxPower;
+} usb_configuration_descriptor_t;
+
+typedef struct usb_interface_descriptor
+{
+	uint8_t bLength;
+	uint8_t bDescriptorType;
+	uint8_t bInterfaceNumber;
+	uint8_t bAlternateSetting;
+	uint8_t bNumEndpoints;
+	uint8_t bInterfaceClass;
+	uint8_t bInterfaceSubClass;
+	uint8_t bInterfaceProtocol;
+	uint8_t iInterface;
+} usb_interface_descriptor_t;
+
+typedef struct usb_endpoint_address
+{
+	uint8_t number		: 4;
+	uint8_t reserved6_4 	: 3;
+	usb_endpoint_dir_t dir	: 1;
+} usb_endpoint_address_t;
+
+typedef enum
+{
+	USB_ENDPOINT_SYNC_TYPE_NO = 0,
+	USB_ENDPOINT_SYNC_TYPE_ASYNC,
+	USB_ENDPOINT_SYNC_TYPE_ADAPTIVE,
+	USB_ENDPOINT_SYNC_TYPE_SYNC
+} usb_endpoint_sync_type_t
+
+typedef enum
+{
+	USB_ENDPOINT_USAGE_TYPE_DATA = 0,
+	USB_ENDPOINT_USAGE_TYPE_FEEDBACK,
+	USB_ENDPOINT_USAGE_TYPE_IMPLICIT_FEEDBACK_DATA,
+	USB_ENDPOINT_USAGE_TYPE_RESERVED,
+
+} usb_endpoint_usage_type_t;
+
+typedef struct usb_endpoint_descriptor
+{
+	uint8_t bLength;
+	uint8_t bDescriptorType;
+	usb_endporint_address_t bEndpointAddress;
+	struct
+	{
+		usb_endpoint_type_t TransferType    : 2;
+		usb_endpoint_sync_type_t SyncType   : 2;
+		usb_endpoint_usage_type_t UsageType : 2;
+		uint8_t reserved7_6                 : 2;
+	} bmAttributes;
+	uint16_t wMaxPacketSize;
+	uint8_t bInterval;
+} usb_endpoint_descriptor_t;
 
 #endif //_USB_H
