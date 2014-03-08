@@ -5,6 +5,7 @@
 #include <cec.h>
 #include <clock.h>
 #include <usb.h>
+#include <usb_cdc.h>
 #include <usb_dev.h>
 #include <usb_dbg.h>
 #include <debug.h>
@@ -45,13 +46,15 @@ usb_ret_t usb_cdc_get_device_descriptor(struct usb_device * usbd, usb_descriptor
 #define USB_CDC_STR_ID_PRODUCT		2
 #define USB_CDC_STR_ID_SERIAL		3
 #define USB_CDC_NUM_CFG			1
-	/*
-	 * {0x12, 0x1, 0x0, 0x2, 0x0, 0x0, 0x0, 0x40, 0x83, 0x4, 0x40, 0x57, 0x0, 0x2, 0x1, 0x2, 0x3, 0x1}
-	 */
+#define USB_CDC_CMD_EP_NUMBER		2
+#define USB_CDC_CMD_PACKET_SZE		8
+#define USB_CDC_DATA_EP_NUMBER		1
+#define USB_CDC_DATA_PACKET_SZE		0x40
+
 	static usb_device_descriptor_t desc_device = 
 	{
 		.bLength 		= sizeof(usb_device_descriptor_t),
-		.bDescriptorType 	= 0x1,
+		.bDescriptorType 	= USB_DESCRIPTOR_TYPE_DEVICE,
 		.bcdUSB			= {0x00, 0x02},
 		.bDeviceClass 		= 0x00,
 		.bDeviceSubClass 	= 0x00,
@@ -65,7 +68,135 @@ usb_ret_t usb_cdc_get_device_descriptor(struct usb_device * usbd, usb_descriptor
 		.iSerialNumber		= USB_CDC_STR_ID_SERIAL,
 		.bNumConfigurations	= USB_CDC_NUM_CFG
 	};
+	static struct 
+	{
+		usb_configuration_descriptor_t 	configuration_descriptor;
+		usb_interface_descriptor_t 	interface_descriptor;
+		usb_cdc_header_descriptor_t 	header_functional_descriptor;
+		usb_cdc_cm_descriptor_t 	cm_functional_descriptor;
+		usb_cdc_acm_descriptor_t 	acm_functional_descriptor;
+		usb_cdc_union_descriptor_t	union_functional_descriptor;
+		uint8_t 			bSlaveInterface0;
+		usb_endpoint_descriptor_t 	endpoint_2_descriptor;
+		usb_interface_descriptor_t 	data_class_interface_descriptor;
+		usb_endpoint_descriptor_t 	endpoint_out_descriptor;
+		usb_endpoint_descriptor_t 	endpoint_in_descriptor;
+	} cdc_configuration_descriptor = {
+		.configuration_descriptor	= {
+			.bLength 		= sizeof(usb_configuration_descriptor_t),
+			.bDescriptorType	= USB_DESCRIPTOR_TYPE_CONFIGURATION,
+			.wTotalLength		= sizeof(cdc_configuration_descriptor),
+			.bNumInterfaces		= 2,
+			.bConfigurationValue	= 1,
+			.iConfiguration		= 0,
+			.bmAttributes 		= {
+				.RemoteWakeup	= 0,
+				.SelfPowered	= 1,
+				.reserved7	= 1
+			},
+			.bMaxPower 		= 0x32,
+		},
+		.interface_descriptor		= {
+			.bLength		= sizeof(usb_interface_descriptor_t),
+			.bDescriptorType	= USB_DESCRIPTOR_TYPE_INTERFACE,
+			.bInterfaceNumber	= 0,
+			.bAlternateSetting	= 0,
+			.bNumEndpoints		= 1,
+			.bInterfaceClass	= 2,
+			.bInterfaceSubClass	= 2,
+			.bInterfaceProtocol	= 1,
+			.iInterface		= 0,
+		},
+		.header_functional_descriptor	= {
+			.bFunctionLength	= sizeof(usb_cdc_header_descriptor_t),
+			.bDescriptorType	= USB_CDC_DESCRIPTOR_TYPE_CS_INTERFACE,
+			.bDescriptorSubtype	= USB_CDC_DESCRIPTOR_SUBTYPE_HEADER,
+			.bcdCDC			= {0x01, 0x10},
+		},
+		.cm_functional_descriptor	= {
+			.bFunctionLength	= sizeof(usb_cdc_cm_descriptor_t),
+			.bDescriptorType	= USB_CDC_DESCRIPTOR_TYPE_CS_INTERFACE,
+			.bDescriptorSubtype	= USB_CDC_DESCRIPTOR_SUBTYPE_CALL_MANAGEMENT,
+			.bmCapabilities		= 0x00,
+			.bDataInterface		= 1,
+		},
+		.acm_functional_descriptor	= {
+			.bFunctionLength	= sizeof(usb_cdc_acm_descriptor_t),
+			.bDescriptorType	= USB_CDC_DESCRIPTOR_TYPE_CS_INTERFACE,
+			.bDescriptorSubtype	= USB_CDC_DESCRIPTOR_SUBTYPE_ABSTRACT_CONTROL_MANAGEMENT,
+			.bmCapabilities		= 0x02,
+		},
+		.union_functional_descriptor	= {
+			.bFunctionLength	= sizeof(usb_cdc_union_descriptor_t),
+			.bDescriptorType	= USB_CDC_DESCRIPTOR_TYPE_CS_INTERFACE,
+			.bDescriptorSubtype	= USB_CDC_DESCRIPTOR_SUBTYPE_UNION,
+			.bMasterInterface	= 0,
+		},
+		.bSlaveInterface0		= 1,
+		.endpoint_2_descriptor		= {
+			.bLength		= sizeof(usb_endpoint_descriptor_t),
+			.bDescriptorType	= USB_DESCRIPTOR_TYPE_ENDPOINT,
+			.bEndpointAddress	= {
+				.number		= USB_CDC_CMD_EP_NUMBER,
+				.dir		= USB_ENDPOINT_DIR_IN,
+				.reserved6_4	= 0,
+			},
+			.bmAttributes		= {
+				.TransferType 	= USB_ENDPOINT_TYPE_INTERRUPT,
+				.SyncType	= USB_ENDPOINT_SYNC_TYPE_NO,
+				.UsageType	= USB_ENDPOINT_USAGE_TYPE_DATA,
+				.reserved7_6	= 0,
+			},
+			.wMaxPacketSize		= USB_CDC_CMD_PACKET_SZE,
+			.bInterval		= 0xFF,
+		},
+		.data_class_interface_descriptor= {
+			.bLength		= sizeof(usb_interface_descriptor_t),
+			.bDescriptorType	= USB_DESCRIPTOR_TYPE_INTERFACE,
+			.bInterfaceNumber	= 1,
+			.bAlternateSetting	= 0,
+			.bNumEndpoints		= 2,
+			.bInterfaceClass	= 0x0A,
+			.bInterfaceSubClass	= 0,
+			.bInterfaceProtocol	= 0,
+			.iInterface		= 0
+		},
+		.endpoint_out_descriptor	= {
+			.bLength		= sizeof(usb_endpoint_descriptor_t),
+			.bDescriptorType	= USB_DESCRIPTOR_TYPE_ENDPOINT,
+			.bEndpointAddress 	= {
+				.number		= USB_CDC_DATA_EP_NUMBER,
+				.dir 		= USB_ENDPOINT_DIR_OUT,
+				.reserved6_4	= 0
+			},
+			.bmAttributes		= {
+				.TransferType 	= USB_ENDPOINT_TYPE_BULK,
+				.SyncType	= USB_ENDPOINT_SYNC_TYPE_NO,
+				.UsageType	= USB_ENDPOINT_USAGE_TYPE_DATA,
+				.reserved7_6	= 0,
+			},
+			.wMaxPacketSize		= USB_CDC_DATA_PACKET_SZE,
+			.bInterval		= 0
 
+		},
+		.endpoint_in_descriptor		= {
+			.bLength		= sizeof(usb_endpoint_descriptor_t),
+			.bDescriptorType	= USB_DESCRIPTOR_TYPE_ENDPOINT,
+			.bEndpointAddress 	= {
+				.number		= USB_CDC_DATA_EP_NUMBER,
+				.dir 		= USB_ENDPOINT_DIR_IN,
+				.reserved6_4	= 0
+			},
+			.bmAttributes		= {
+				.TransferType 	= USB_ENDPOINT_TYPE_BULK,
+				.SyncType	= USB_ENDPOINT_SYNC_TYPE_NO,
+				.UsageType	= USB_ENDPOINT_USAGE_TYPE_DATA,
+				.reserved7_6	= 0,
+			},
+			.wMaxPacketSize		= USB_CDC_DATA_PACKET_SZE,
+			.bInterval		= 0
+		}
+	};
 	if(NULL != buff)
 	{
 		switch(type)

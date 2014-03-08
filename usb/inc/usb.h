@@ -10,15 +10,13 @@ typedef enum
 	USB_ENDPOINT_TYPE_CONTROL = 0,
 	USB_ENDPOINT_TYPE_ISOCHRONOUS,
 	USB_ENDPOINT_TYPE_BULK,
-	USB_ENDPOINT_TYPE_INTERRUPT,
-	
-	USB_ENDPOINT_TYPE_MAX
+	USB_ENDPOINT_TYPE_INTERRUPT
 } usb_endpoint_type_t;
 
 typedef enum
 {
 	USB_ENDPOINT_DIR_OUT,
-	USB_ENDPOINT_DIR_IN,
+	USB_ENDPOINT_DIR_IN
 } usb_endpoint_dir_t;
 
 typedef enum
@@ -203,7 +201,7 @@ typedef enum
 	USB_ENDPOINT_SYNC_TYPE_ASYNC,
 	USB_ENDPOINT_SYNC_TYPE_ADAPTIVE,
 	USB_ENDPOINT_SYNC_TYPE_SYNC
-} usb_endpoint_sync_type_t
+} usb_endpoint_sync_type_t;
 
 typedef enum
 {
@@ -218,7 +216,7 @@ typedef struct usb_endpoint_descriptor
 {
 	uint8_t bLength;
 	uint8_t bDescriptorType;
-	usb_endporint_address_t bEndpointAddress;
+	usb_endpoint_address_t bEndpointAddress;
 	struct
 	{
 		usb_endpoint_type_t TransferType    : 2;
