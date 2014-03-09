@@ -20,7 +20,7 @@ struct usb_dev_platform;
 typedef struct usb_dev_platform * usb_dev_platform_handle_t;
 
 usb_dev_platform_handle_t usb_dev_platform_init(struct usb_dev_platform_callbacks * callbacks);
-int usb_dev_platform_ep0_tx_start(usb_dev_platform_handle_t handle, struct usb_device_endpoint * ep);
+int usb_dev_platform_ep_tx_start(usb_dev_platform_handle_t handle, struct usb_device_endpoint * ep);
 int usb_dev_platform_ep_activate(usb_dev_platform_handle_t handle, struct usb_device_endpoint * ep);
 int usb_dev_platform_write_fifo(usb_dev_platform_handle_t handle, struct usb_device_endpoint * ep);
 int usb_dev_platform_set_address(usb_dev_platform_handle_t handle, usb_address_t addr);

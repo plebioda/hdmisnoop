@@ -12,14 +12,11 @@ int usb_dev_ep_tx(struct usb_device * usbd, uint8_t n, uint8_t * buff, uint32_t 
 	
 	ep->buff.ptr = buff;
 	ep->buff.len = len;
+	ep->transfer_count = 0;
 
-	if(ep->id == 0)
-	{
-		usb_dev_platform_ep0_tx_start(usbd->platform, ep);
-	}
-	else
-	{
-	}
+	usb_dev_platform_ep_tx_start(usbd->platform, ep);
+
+	return 0;
 }
 
 int usb_dev_ep_rx(struct usb_device * usbd, uint32_t n)
@@ -87,6 +84,29 @@ int usb_dev_request_set_address(struct usb_device * usbd, struct usb_setup_packe
 	}
 }
 
+int usb_dev_get_string_descriptor(const char * str, uint8_t * buff, int max)
+{
+	int str_len = 2*strlen(str);
+	int len = str_len + 2;
+
+	if(len > max)
+	{
+		str_len -= (len-max);
+		len = max;
+	}
+
+	*(buff++) = len;
+	*(buff++) = USB_DESCRIPTOR_TYPE_STRING;
+
+	for(int i = 0 ; i < str_len / 2 ; i++)
+	{
+		*(buff++) = str[i];
+		*(buff++) = 0;
+	}
+
+	return len;
+}
+
 
 int usb_dev_request_get_descriptor(struct usb_device * usbd, struct usb_setup_packet * setup_packet)
 {
@@ -101,13 +121,13 @@ int usb_dev_request_get_descriptor(struct usb_device * usbd, struct usb_setup_pa
 	}
 
 	usb_descriptor_type_t type = setup_packet->wValue.desc.type;
-
+	uint8_t index = setup_packet->wValue.desc.index;
 	switch(type)
 	{
 		case USB_DESCRIPTOR_TYPE_DEVICE:
 			if(usbd->fops.get_device_descriptor)
 			{
-				usb_ret_t ret = usbd->fops.get_device_descriptor(usbd, type, &buff);
+				usb_ret_t ret = usbd->fops.get_device_descriptor(usbd, type, index, &buff);
 				if(ret)
 				{
 					return -1;
@@ -119,15 +139,15 @@ int usb_dev_request_get_descriptor(struct usb_device * usbd, struct usb_setup_pa
 			}
 			break;
 		case USB_DESCRIPTOR_TYPE_CONFIGURATION:
+		case USB_DESCRIPTOR_TYPE_STRING:
 			if(usbd->fops.get_device_descriptor)
 			{
-				if(usbd->fops.get_device_descriptor(usbd, type, &buff))
+				if(usbd->fops.get_device_descriptor(usbd, type, index, &buff))
 				{
 					return -1;
 				}
 			}
 			break;
-		case USB_DESCRIPTOR_TYPE_STRING:
 		case USB_DESCRIPTOR_TYPE_INTERFACE:
 		case USB_DESCRIPTOR_TYPE_ENDPOINT:
 			return -1;
@@ -236,14 +256,20 @@ int usb_dev_ep_rx_status(struct usb_device * usbd, struct usb_device_endpoint * 
 
 void usb_dev_platform_callback_tx_completed(void * context, uint32_t n)
 {
-	dbg("tx_completed\n");
 	if(NULL != context)
 	{
 		struct usb_device * usbd = (struct usb_device*)context;
 
 		if(n < USB_DEVICE_IN_ENDPOINTS_NUMBER)
 		{
-			TODO("Check write data");
+			struct usb_device_endpoint * ep = &usbd->ep_in[n];
+			
+			ep->transfer_count += ep->packet_sent;
+
+			if(ep->transfer_count < ep->buff.len)
+			{
+				usb_dev_platform_ep_tx_start(usbd->platform, ep);
+			}
 			
 			usb_dev_ep_rx_status(usbd, &usbd->ep_out[n]);
 		}

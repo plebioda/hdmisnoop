@@ -9,16 +9,23 @@
 #define DEBUG_CONFIG_TIMESTAMPS	1
 #endif
 
+#ifdef DEBUG
+#define _dbg(fmt, args...)	printf(fmt, ## args)
+#else
+#define _dbg(fmt, args...)	do{}while(0)
+#endif
+
 #if DEBUG_CONFIG_TIMESTAMPS
 #define dbg(fmt, args...)	{						\
 					up_time_t time = get_up_time();		\
-					printf("[%02d:%02d:%02d.%03d] debug: " fmt, time.hours, time.minutes, time.seconds, time.ms, ## args);		\
+					_dbg("[%02d:%02d:%02d.%03d] debug: " fmt, time.hours, time.minutes, time.seconds, time.ms, ## args);		\
 				}
+
 #else
-#define dbg(fmt, args...)	printf(fmt, ## args)
+#define dbg(fmt, args...)	_dbg(fmt, ## args)
 #endif
 
-#define _dbg(fmt, args...)	printf(fmt, ## args)
+#define dbgf(fmt, args...)	dbg("%s: " fmt, __FUNCTION__, ## args)
 
 #define TODO_COLOR		COLORFB(BLUE, REGULAR, YELLOW)
 #define TODO_COLOR_CLEAR	COLOR_CLEAR

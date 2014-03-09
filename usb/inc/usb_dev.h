@@ -11,7 +11,7 @@ struct usb_device;
 struct usb_device_fops
 {
 	usb_ret_t (*sof)(struct usb_device * usbd);
-	usb_ret_t (*get_device_descriptor)(struct usb_device * usbd, usb_descriptor_type_t type, struct usb_device_buffer * buff);
+	usb_ret_t (*get_device_descriptor)(struct usb_device * usbd, usb_descriptor_type_t type, uint8_t id, struct usb_device_buffer * buff);
 };
 
 struct usb_device
@@ -32,5 +32,6 @@ struct usb_device
 };
 
 int usb_dev_init(struct usb_device * usbd);
+int usb_dev_get_string_descriptor(const char * str, uint8_t * buff, int max);
 
 #endif //_USB_DEVICE_H

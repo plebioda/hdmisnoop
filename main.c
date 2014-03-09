@@ -14,6 +14,7 @@
 #define USB_CDC_MAX_PACKET_SIZE0	64	
 #define USB_CDC_VID			0x0483
 #define USB_CDC_PID			0x5740
+#define USB_CDC_STR_ID_LANG		0
 #define USB_CDC_STR_ID_MANUFACTURER	1
 #define USB_CDC_STR_ID_PRODUCT		2
 #define USB_CDC_STR_ID_SERIAL		3
@@ -22,6 +23,10 @@
 #define USB_CDC_CMD_PACKET_SZE		8
 #define USB_CDC_DATA_EP_NUMBER		1
 #define USB_CDC_DATA_PACKET_SZE		0x40
+#define USB_CDC_LANGID			0x409
+#define USB_CDC_MANUFACTURER_STRING	"STMicroelectronics"
+#define USB_CDC_PRODUCT_STRING		"STM32 Virtual ComPort in FS Mode"
+#define USB_CDC_SERIAL_STRING		"00000000050C"
 
 static usb_device_descriptor_t desc_device = 
 {
@@ -171,6 +176,21 @@ static struct
 	}
 };
 
+typedef struct usb_langid_descriptor
+{
+	uint8_t bLength;
+	uint8_t bDescriptorType;
+	uint16_t wLANGID[1];
+} PACKED usb_langid_descriptor_t;
+
+uint8_t string_descriptor[USB_MAX_STRING_DESCRIPTOR];
+
+usb_langid_descriptor_t langid_descriptor = {
+	.bLength 		= sizeof(usb_langid_descriptor_t),
+	.bDescriptorType  	= USB_DESCRIPTOR_TYPE_STRING,
+	.wLANGID[0] 		= USB_CDC_LANGID 
+};
+
 #define CEC_BUFFER_SIZE		16
 struct cec_message_buffer_item
 {
@@ -194,7 +214,7 @@ usb_ret_t usb_cdc_sof(struct usb_device * usbd)
 
 }
 
-usb_ret_t usb_cdc_get_device_descriptor(struct usb_device * usbd, usb_descriptor_type_t type, struct usb_device_buffer * buff)
+usb_ret_t usb_cdc_get_device_descriptor(struct usb_device * usbd, usb_descriptor_type_t type, uint8_t index, struct usb_device_buffer * buff)
 {
 	if(NULL != buff)
 	{
@@ -207,6 +227,30 @@ usb_ret_t usb_cdc_get_device_descriptor(struct usb_device * usbd, usb_descriptor
 			case USB_DESCRIPTOR_TYPE_CONFIGURATION:
 				buff->ptr = (uint8_t*)&cdc_configuration_descriptor;
 				buff->len = sizeof(cdc_configuration_descriptor);
+				break;
+			case USB_DESCRIPTOR_TYPE_STRING:
+				dbg("STRING ID=%d\n", index);
+				switch(index)
+				{
+					case USB_CDC_STR_ID_LANG:
+						buff->ptr = (uint8_t*)&langid_descriptor;
+						buff->len = sizeof(langid_descriptor);
+						break;
+					case USB_CDC_STR_ID_MANUFACTURER:
+						buff->len = usb_dev_get_string_descriptor(USB_CDC_MANUFACTURER_STRING, string_descriptor, USB_MAX_STRING_DESCRIPTOR);
+						buff->ptr = string_descriptor;
+						break;
+					case USB_CDC_STR_ID_PRODUCT:
+						buff->len = usb_dev_get_string_descriptor(USB_CDC_PRODUCT_STRING, string_descriptor, USB_MAX_STRING_DESCRIPTOR);
+						buff->ptr = string_descriptor;
+						break;
+					case USB_CDC_STR_ID_SERIAL:
+						buff->len = usb_dev_get_string_descriptor(USB_CDC_SERIAL_STRING, string_descriptor, USB_MAX_STRING_DESCRIPTOR);
+						buff->ptr = string_descriptor;
+						break;
+				default:
+					return -1;
+				}
 				break;
 			default:
 				return -1;

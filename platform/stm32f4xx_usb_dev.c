@@ -41,7 +41,7 @@ int usb_dev_platform_write_packet(struct usb_dev_platform * usbd, uint32_t n, ui
 	__IO uint32_t * fifo = (uint32_t*)usbd->regs.DFIFO[n];
 	uint32_t * buff32 = (uint32_t*)buff;
 #if DEBUG_CONFIG_USB_DEV_WRITE_PACKET
-		dbg("%d: {", n);
+		dbg("ep=%d len=%d: {", n, len);
 		for(uint32_t i=0;i<len-1;i++)
 		{
 			_dbg("0x%x, ", buff[i]);
@@ -153,16 +153,15 @@ int usb_dev_platform_rx_prepare(usb_dev_platform_handle_t usbd, struct usb_devic
 
 int usb_dev_platform_write_fifo(usb_dev_platform_handle_t usbd, struct usb_device_endpoint * ep)
 {
-	uint16_t len = ep->buff.len;
-	
 	uint32_t n = ep->id;
 
-	uint16_t len32 = (len + 3) / 4;
+	uint16_t len32 = (ep->packet_len + 3) / 4;
 
-	if(ep->buff.len > 0 && usbd->regs.DTXFSTS[n]->b.INEPTFSAV > len32)
+	while(ep->packet_len > 0 && usbd->regs.DTXFSTS[n]->b.INEPTFSAV > len32)
 	{
-		usb_dev_platform_write_packet(usbd, n, ep->buff.ptr, ep->buff.len);
-		ep->buff.len = 0;
+		int ret = usb_dev_platform_write_packet(usbd, n, ep->buff.ptr, ep->packet_len);
+		ep->packet_len -= ret;
+		ep->packet_sent += ret;
 	}
 
 	return 0;
@@ -290,7 +289,6 @@ uint32_t usb_dev_platform_irq_rxflvl(struct usb_dev_platform * usbd)
 
 	USB_OTG_FS_GRXSTSx_T grxstsp = usbd->regs.CGCSR->GRXSTSP;
 	USB_GRXSTSP_PKTSTS_T pktsts = grxstsp.b.PKTSTS;
-	//dbg("PKTSTS=%d, BCNT=%d\n", pktsts, grxstsp.b.BCNT); 
 	switch(pktsts)
 	{
 		case USB_GRXSTSP_PKSTS_GLOBAL_OUT_NAK:
@@ -376,12 +374,22 @@ uint32_t usb_dev_platform_read_out_ep_irq(struct usb_dev_platform * usbd, uint32
 	return (doepint & doepmsk);
 }
 
-int usb_dev_platform_ep0_tx_start(struct usb_dev_platform * usbd, struct usb_device_endpoint * ep)
+int usb_dev_platform_ep_tx_start(struct usb_dev_platform * usbd, struct usb_device_endpoint * ep)
 {
 	USB_OTG_FS_DIEPSIZ0_T diepsiz;
 	
 	diepsiz.reg = 0;
 	
+	uint16_t len = ep->buff.len - ep->transfer_count;
+
+	if(len > ep->mps)
+	{
+		len = ep->mps;
+	}
+	
+	ep->packet_len = len;
+	ep->packet_sent = 0;
+
 	if(!ep->buff.len)
 	{
 		diepsiz.b.XFRSIZ = 0;
@@ -389,7 +397,7 @@ int usb_dev_platform_ep0_tx_start(struct usb_dev_platform * usbd, struct usb_dev
 	}
 	else
 	{
-		diepsiz.b.XFRSIZ = ep->buff.len;
+		diepsiz.b.XFRSIZ = len;
 		diepsiz.b.PKTCNT = 1;
 	}
 	
@@ -403,7 +411,6 @@ int usb_dev_platform_ep0_tx_start(struct usb_dev_platform * usbd, struct usb_dev
 	diepctl.b.EPENA = 1;
 
 	usbd->regs.DIEPCTL[ep->id]->reg = diepctl.reg;
-	dbg("tx_start: DIEPCTL[%d] = 0x%08x\n", ep->id, usbd->regs.DIEPCTL[ep->id]->reg);
 	
 	usbd->regs.DMCSR->DIEPEMPMSK.b.INEPTXFEM |= (1 << ep->id);
 
