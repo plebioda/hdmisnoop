@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <clock.h>
+#include <shell_colors.h>
 
 #ifndef DEBUG_CONFIG_TIMESTAMPS
 #define DEBUG_CONFIG_TIMESTAMPS	1
@@ -19,8 +20,10 @@
 
 #define _dbg(fmt, args...)	printf(fmt, ## args)
 
-#define TODO(fmt, args...)	dbg("** TODO at [%s:%d]\n", __FILE__, __LINE__);	\
-				dbg("** " fmt, ## args)
+#define TODO_COLOR		COLORFB(BLUE, REGULAR, YELLOW)
+#define TODO_COLOR_CLEAR	COLOR_CLEAR
+#define TODO(fmt, args...)	dbg( TODO_COLOR "** TODO at [%s:%d]" TODO_COLOR_CLEAR "\n", __FILE__, __LINE__);	\
+				dbg( TODO_COLOR "** " fmt TODO_COLOR_CLEAR "\n", ## args)
 
 #define STR(name)	#name
 #define PRINT_FIELD(n, f)	dbg("%s.%s	: %d\n", STR(n), STR(f), n.b.f)

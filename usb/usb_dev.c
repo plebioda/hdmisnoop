@@ -9,7 +9,7 @@
 int usb_dev_ep_tx(struct usb_device * usbd, uint8_t n, uint8_t * buff, uint32_t len)
 {
 	struct usb_device_endpoint * ep = &usbd->ep_in[n];
-	ep->id = n;
+	
 	ep->buff.ptr = buff;
 	ep->buff.len = len;
 
@@ -24,7 +24,7 @@ int usb_dev_ep_tx(struct usb_device * usbd, uint8_t n, uint8_t * buff, uint32_t 
 
 int usb_dev_ep_rx(struct usb_device * usbd, uint32_t n)
 {
-	TODO("Implement me\n");
+	TODO("Implement me");
 }
 
 int usb_dev_ctl_send_data(struct usb_device * usbd, uint8_t * buff, uint32_t len)
@@ -243,7 +243,7 @@ void usb_dev_platform_callback_tx_completed(void * context, uint32_t n)
 
 		if(n < USB_DEVICE_IN_ENDPOINTS_NUMBER)
 		{
-			TODO("Check write data\n");
+			TODO("Check write data");
 			
 			usb_dev_ep_rx_status(usbd, &usbd->ep_out[n]);
 		}

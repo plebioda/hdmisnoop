@@ -117,7 +117,7 @@ int usb_dev_platform_rx_setup(usb_dev_platform_handle_t usbd, struct usb_device_
 	}
 	else
 	{
-		TODO("Implement me\n");
+		TODO("Implement me");
 		return -1;
 	}
 }
@@ -146,7 +146,7 @@ int usb_dev_platform_rx_prepare(usb_dev_platform_handle_t usbd, struct usb_devic
 	}
 	else
 	{
-		TODO("Implement me\n");
+		TODO("Implement me");
 		return -1;
 	}
 }
@@ -657,7 +657,7 @@ uint32_t usb_irq(struct usb_dev_platform * usbd)
 
 		if(gintsts.b.IEPINT)
 		{
-			dbg("IEPINT\n");
+			//dbg("IEPINT\n");
 			usb_dev_platform_irq_iepint(usbd);
 		}
 
