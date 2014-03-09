@@ -44,6 +44,7 @@ endif
 # Defines
 DEFS += USART_ADD_CRLF
 DEFS += USART_BAUD_RATE=115200
+DEFS += PACKED="__attribute__((packed))"
 
 # Includes directories
 INC_DIR += .

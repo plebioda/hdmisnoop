@@ -37,5 +37,6 @@ typedef volatile unsigned int io;
 							dbg("0x%08x : %-20s = 0x%08x\n", ptr, STR(_reg),  *ptr); \
 						}
 
+#define PRINT_SIZE(t)		dbg("sizeof(%s) = %d\n", STR( t ), sizeof( t ) )
 
 #endif //_DEBUG_H

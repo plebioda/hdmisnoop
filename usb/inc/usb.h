@@ -136,7 +136,7 @@ typedef struct usb_setup_packet
 	} wValue;
 	uint16_t wIndex;
 	uint16_t wLength;
-} usb_setup_packet_t;
+} PACKED usb_setup_packet_t;
 
 
 typedef struct usb_device_descriptor
@@ -155,7 +155,7 @@ typedef struct usb_device_descriptor
 	uint8_t iProduct;
 	uint8_t iSerialNumber;
 	uint8_t bNumConfigurations;
-} usb_device_descriptor_t;
+} PACKED usb_device_descriptor_t;
 
 typedef struct usb_configuration_descritor
 {
@@ -173,7 +173,7 @@ typedef struct usb_configuration_descritor
 		uint8_t reserved7	: 1;
 	} bmAttributes;
 	uint8_t bMaxPower;
-} usb_configuration_descriptor_t;
+} PACKED usb_configuration_descriptor_t;
 
 typedef struct usb_interface_descriptor
 {
@@ -186,14 +186,14 @@ typedef struct usb_interface_descriptor
 	uint8_t bInterfaceSubClass;
 	uint8_t bInterfaceProtocol;
 	uint8_t iInterface;
-} usb_interface_descriptor_t;
+} PACKED usb_interface_descriptor_t;
 
 typedef struct usb_endpoint_address
 {
 	uint8_t number		: 4;
 	uint8_t reserved6_4 	: 3;
 	usb_endpoint_dir_t dir	: 1;
-} usb_endpoint_address_t;
+} PACKED usb_endpoint_address_t;
 
 typedef enum
 {
@@ -226,6 +226,6 @@ typedef struct usb_endpoint_descriptor
 	} bmAttributes;
 	uint16_t wMaxPacketSize;
 	uint8_t bInterval;
-} usb_endpoint_descriptor_t;
+} PACKED usb_endpoint_descriptor_t;
 
 #endif //_USB_H

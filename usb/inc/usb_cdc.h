@@ -38,7 +38,7 @@ typedef struct usb_cdc_header_descriptor
 	uint8_t bDescriptorSubtype;
 	uint8_t bcdCDC[2];
 
-} usb_cdc_header_descriptor_t;
+} PACKED usb_cdc_header_descriptor_t;
 
 /*
  * Call Management Functional Descriptor
@@ -50,7 +50,7 @@ typedef struct usb_cdc_cm_descriptor
 	uint8_t bDescriptorSubtype;
 	uint8_t bmCapabilities;
 	uint8_t bDataInterface;
-} usb_cdc_cm_descriptor_t;
+} PACKED usb_cdc_cm_descriptor_t;
 
 /*
  * Abstract Control Management Functional Descriptor
@@ -61,7 +61,7 @@ typedef struct usb_cdc_acm_descriptor
 	uint8_t bDescriptorType;
 	uint8_t bDescriptorSubtype;
 	uint8_t bmCapabilities;
-} usb_cdc_acm_descriptor_t;
+} PACKED usb_cdc_acm_descriptor_t;
 
 /*
  * Direct Line Management Functional Descriptor
@@ -72,7 +72,7 @@ typedef struct usb_cdc_dlm_descriptor
 	uint8_t bDescriptorType;
 	uint8_t bDescriptorSubtype;
 	uint8_t bmCapabilities;
-} usb_cdc_dlm_descriptor_t;
+} PACKED usb_cdc_dlm_descriptor_t;
 
 /*
  * Union Functional Descriptor
@@ -83,6 +83,6 @@ typedef struct usb_cdc_union_descriptor
 	uint8_t bDescriptorType;
 	uint8_t bDescriptorSubtype;
 	uint8_t bMasterInterface;
-} usb_cdc_union_descriptor_t;
+} PACKED usb_cdc_union_descriptor_t;
 
 #endif //_USB_CDC_H

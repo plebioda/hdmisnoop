@@ -4,6 +4,7 @@
 #include <usb_dev_platform.h>
 #include <debug.h>
 #include <usb_dbg.h>
+#include <utils.h>
 
 int usb_dev_ep_tx(struct usb_device * usbd, uint8_t n, uint8_t * buff, uint32_t len)
 {
@@ -141,6 +142,7 @@ int usb_dev_request_get_descriptor(struct usb_device * usbd, struct usb_setup_pa
 
 	if(NULL != buff.ptr && buff.len>0 && setup_packet->wLength>0)
 	{
+		buff.len = MIN(buff.len, setup_packet->wLength);
 		return usb_dev_ctl_send_data(usbd, buff.ptr, buff.len);
 	}
 	else
